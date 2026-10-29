@@ -1,4 +1,4 @@
-# Afterburner
+# MachStrike
 
 An offline, single-player fighter flight simulator for **webxdc** chat hosts, built with **Angular 22**, **SCSS**, and **Three.js**. Desktop keyboard controls and a multi-touch cockpit drive the same simulation.
 
@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-`npm start` builds the app and launches **`@webxdc/webxdc-dev`**, serving `dist/afterburner-<version>.xdc` in the chat-host simulator (default UI: `http://localhost:7000`). Restart it after source changes; this deliberately previews the actual packaged production app rather than `ng serve`. Use `npm start -- --open` to open the simulator automatically, or `npx webxdc-dev run --help` to inspect runner options. `npm run preview -- --port 7450` serves the current version without rebuilding or incrementing it.
+`npm start` builds the app and launches **`@webxdc/webxdc-dev`**, serving `dist/machstrike-<version>.xdc` in the chat-host simulator (default UI: `http://localhost:7000`). Restart it after source changes; this deliberately previews the actual packaged production app rather than `ng serve`. `npm start` reuses the current build version without incrementing it. Use `npm start -- --open` to open the simulator automatically, or `npx webxdc-dev run --help` to inspect runner options. `npm run preview -- --port 7450` serves the current version without rebuilding or incrementing it.
 
 ```sh
 npm test             # flight dynamics, landing states, and combat regression tests
@@ -21,7 +21,7 @@ npm run build        # optimized Angular build + verified ZIP-format .xdc packag
 
 For browser smoke coverage, run `npm start -- --port 7450`, then `npm run test:browser` in another terminal. It exercises desktop, portrait-touch, and landscape-touch layouts against the packaged app in webxdc-dev. It uses `/usr/bin/google-chrome` by default; set `CHROME_PATH` to another Chromium executable and `APP_URL` to the first instance URL if needed.
 
-Send **`dist/afterburner-<version>.xdc`** into a Delta Chat or compatible webxdc chat and launch it there. Archive filenames replace the version's `+` with `.`: version `0.1.0+3` produces `afterburner-0.1.0.3.xdc`. Before each `npm run build` or `npm run build:debug`, the numeric build suffix increments and is retained even if compilation fails. `package.json`, root metadata in `package-lock.json`, `public/manifest.toml`, and the generated root `version.js` stay aligned and retain the `+` version format. Previous versioned archives are preserved. The archive has `index.html`, `manifest.toml`, `icon.png`, local bundles, and dependency license notices at its root. No runtime network, fonts, textures, models, telemetry, service workers, or CDN are required. No webxdc API is needed: each recipient plays an independent sortie; this is **not multiplayer**. Personal best scores are stored locally where the host permits storage.
+Send **`dist/machstrike-<version>.xdc`** into a Delta Chat or compatible webxdc chat and launch it there. Archive filenames replace the version's `+` with `.`: version `0.1.0+3` produces `machstrike-0.1.0.3.xdc`. Before each `npm run build` or `npm run build:debug`, the numeric build suffix increments and is retained even if compilation fails; `npm start` does not increment it. `package.json`, root metadata in `package-lock.json`, `public/manifest.toml`, and the generated root `version.js` stay aligned and retain the `+` version format. Previous versioned archives are preserved. The archive has `index.html`, `manifest.toml`, `icon.png`, local bundles, and dependency license notices at its root. No runtime network, fonts, textures, models, telemetry, service workers, or CDN are required. No webxdc API is needed: each recipient plays an independent sortie; this is **not multiplayer**. Personal best scores are stored locally where the host permits storage.
 
 ## Flying
 
@@ -123,7 +123,7 @@ After **three uninterrupted seconds** with no stall, angle of attack below 0.12 
 
 Direct engagement needs at least 30 m (~100 ft) terrain clearance, 45–330 m/s speed, fuel, pitch within ±83°, and bank within ±149°. Once engaged, recovery continues unloading and leveling even if speed falls below 40 m/s or attitude crosses the ordinary autopilot limits; these upset conditions no longer cause it to abandon recovery. It still disconnects below 20 m terrain clearance, above 350 m/s, on ground contact or engine/airframe failure, and for manual overrides. Disconnect messages identify the specific condition. Transition to wings-level hold also requires at least 150 m clearance and pitch within ±57° to avoid immediately tripping that mode's stricter limits. It is not a spin-recovery system or a guarantee against terrain impact; insufficient altitude, extreme attitude, or lost control authority can prevent recovery. Gear and flaps remain pilot-controlled.
 
-For debugger investigations, `npm run build:debug` packages an unoptimized versioned archive with source maps. Serve it with `npm run preview -- --port 7450` and attach the JavaScript debugger to the app at port 7451. `npm start` rebuilds production, so do not use it to serve the debug archive. Run `npm run build` to create the next production package afterward.
+For debugger investigations, `npm run build:debug` packages an unoptimized versioned archive with source maps. Serve it with `npm run preview -- --port 7450` and attach the JavaScript debugger to the app at port 7451. `npm start` rebuilds production using the current version, so do not use it to serve the debug archive. Run `npm run build` to create the next production package afterward.
 
 ### Automatic takeoff and return-to-base landing
 

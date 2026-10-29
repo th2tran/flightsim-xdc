@@ -1,12 +1,12 @@
 {
-  "name": "afterburner-xdc",
-  "version": "0.2.0+19",
-  "description": "Afterburner: an offline Web-XDC fighter flight simulator",
+  "name": "machstrike-xdc",
+  "version": "0.2.0+23",
+  "description": "MachStrike: A Web-XDC fighter jet simulator",
   "license": "MIT",
   "author": "",
   "type": "module",
   "scripts": {
-    "start": "npm run build && node scripts/preview.mjs",
+    "start": "ng build && node scripts/package.mjs && node scripts/preview.mjs",
     "preview": "node scripts/preview.mjs",
     "prebuild": "node scripts/bump-build.mjs",
     "build": "ng build && node scripts/package.mjs",

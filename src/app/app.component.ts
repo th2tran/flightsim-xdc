@@ -89,7 +89,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.combat.reset('intercept', this.aircraft);
     this.restoreAudioSettings();
     try {
-      const saved = Number(localStorage.getItem('afterburner-best') ?? 0);
+      const saved = Number(localStorage.getItem('machstrike-best') ?? localStorage.getItem('afterburner-best') ?? 0);
       this.best = Number.isFinite(saved) && saved >= 0 ? saved : 0;
     } catch (error: unknown) {
       console.warn('Local flight records are unavailable', error);
@@ -182,7 +182,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   private restoreAudioSettings(): void {
     try {
-      const saved = localStorage.getItem('afterburner-audio');
+      const saved = localStorage.getItem('machstrike-audio') ?? localStorage.getItem('afterburner-audio');
       if (saved === null) return;
       const settings: unknown = JSON.parse(saved);
       if (typeof settings !== 'object' || settings === null
@@ -203,7 +203,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   private saveAudioSettings(): void {
     try {
-      localStorage.setItem('afterburner-audio', JSON.stringify({
+      localStorage.setItem('machstrike-audio', JSON.stringify({
         musicVolume: this.music.volume, effectsVolume: this.sound.volume,
       }));
       this.audioSettingsError = '';
@@ -349,7 +349,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (!this.started || (!this.combat.complete && this.aircraft.phase !== 'crashed' && this.aircraft.phase !== 'landed')) return;
     if (this.score <= this.best) return;
     this.best = this.score;
-    try { localStorage.setItem('afterburner-best', String(this.best)); }
+    try { localStorage.setItem('machstrike-best', String(this.best)); }
     catch (error: unknown) {
       console.warn('Unable to save flight record', error);
       this.combat.notify('Flight record could not be saved in this host.', 5);

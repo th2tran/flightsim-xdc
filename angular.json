@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "afterburner": {
+    "machstrike": {
       "projectType": "application",
       "root": "",
       "sourceRoot": "src",
@@ -16,7 +16,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/afterburner",
+            "outputPath": "dist/machstrike",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
@@ -37,8 +37,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "afterburner:build:production" },
-            "development": { "buildTarget": "afterburner:build:development" }
+            "production": { "buildTarget": "machstrike:build:production" },
+            "development": { "buildTarget": "machstrike:build:development" }
           },
           "defaultConfiguration": "development"
         }

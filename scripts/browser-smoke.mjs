@@ -247,7 +247,7 @@ try {
   }
   for (const invalid of ['{"musicVolume":2,"effectsVolume":0.4}', 'not-json']) {
     const storageContext = await browser.newContext();
-    await storageContext.addInitScript(value => localStorage.setItem('afterburner-audio', value), invalid);
+    await storageContext.addInitScript(value => localStorage.setItem('machstrike-audio', value), invalid);
     const storagePage = await storageContext.newPage();
     storagePage.on('pageerror', error => errors.push(error.message));
     await storagePage.goto(url);
@@ -260,6 +260,21 @@ try {
     assert.equal(await storagePage.getByText('Saved volume settings could not be restored. Default volumes are in use.').count(), 0);
     await storageContext.close();
   }
+  const legacyStorage = await browser.newContext();
+  await legacyStorage.addInitScript(() => {
+    localStorage.setItem('afterburner-audio', '{"musicVolume":0.2,"effectsVolume":0.4}');
+    localStorage.setItem('afterburner-best', '12345');
+  });
+  const legacyPage = await legacyStorage.newPage();
+  legacyPage.on('pageerror', error => errors.push(error.message));
+  await legacyPage.goto(url);
+  await legacyPage.getByRole('heading', { name: 'Own the sky.' }).waitFor();
+  assert.match(await legacyPage.locator('.best-score').innerText(), /12,345/);
+  await legacyPage.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
+  await legacyPage.getByRole('button', { name: 'Music settings', exact: true }).click();
+  assert.equal(await legacyPage.getByRole('slider', { name: 'Music volume' }).inputValue(), '20');
+  assert.equal(await legacyPage.getByRole('slider', { name: 'Sound effects volume' }).inputValue(), '40');
+  await legacyStorage.close();
   const blockedStorage = await browser.newContext();
   await blockedStorage.addInitScript(() => {
     Storage.prototype.setItem = () => { throw new DOMException('Storage blocked', 'SecurityError'); };

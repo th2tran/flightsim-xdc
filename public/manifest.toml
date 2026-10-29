@@ -1,4 +1,4 @@
-name = "Afterburner"
-description = "Offline fighter flight simulator with six-degree-of-freedom flight and combat."
+name = "MachStrike"
+description = "A Web-XDC fighter jet simulator with six-degree-of-freedom flight and combat."
 icon = "icon.png"
-version = "0.2.0+19"
+version = "0.2.0+23"

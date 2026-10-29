@@ -4,7 +4,7 @@ import { zipSync, unzipSync, strToU8, zlibSync } from 'fflate';
 
 const root = new URL('../', import.meta.url);
 const { version } = JSON.parse(await readFile(new URL('package.json', root), 'utf8'));
-const output = new URL('dist/afterburner/browser/', root);
+const output = new URL('dist/machstrike/browser/', root);
 const versionSource = `// Generated release metadata. Keep aligned with package.json.\nexport const VERSION = ${JSON.stringify(version)};\n`;
 await writeFile(new URL('version.js', root), versionSource);
 await writeFile(new URL('version.js', output), versionSource);
@@ -77,6 +77,6 @@ for (const required of ['index.html', 'manifest.toml', 'icon.png', 'version.js']
 const archive = zipSync(files, { level: 9 });
 const decoded = unzipSync(archive);
 if (Object.keys(decoded).length !== Object.keys(files).length) throw new Error('Archive verification failed');
-const archivePath = `dist/afterburner-${version.replaceAll('+', '.')}.xdc`;
+const archivePath = `dist/machstrike-${version.replaceAll('+', '.')}.xdc`;
 await writeFile(new URL(archivePath, root), archive);
-console.log(`Packaged Afterburner ${version}: ${archivePath} (${(archive.length / 1024 / 1024).toFixed(2)} MiB, ${Object.keys(files).length} files)`);
+console.log(`Packaged MachStrike ${version}: ${archivePath} (${(archive.length / 1024 / 1024).toFixed(2)} MiB, ${Object.keys(files).length} files)`);
