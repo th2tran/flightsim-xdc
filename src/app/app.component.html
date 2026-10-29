@@ -190,9 +190,9 @@
         </section>
       } @else if (menu) {
         <section class="dialog briefing" role="dialog" aria-modal="true" aria-labelledby="briefing-title">
-          <div class="dialog-top"><span class="eyebrow"><span class="live-dot"></span> FLIGHT OPERATIONS / NORTHSTAR</span></div>
+          <div class="dialog-top"><span class="eyebrow"><span class="live-dot"></span> FLIGHT OPERATIONS / NORTHSTAR</span><span class="app-version" aria-label="App version">v{{ version }}</span></div>
           <div class="briefing-title"><div><h1 id="briefing-title">Own the <em>sky.</em></h1><p>One pilot. Open airspace. No second chances.</p></div><app-aircraft-preview class="briefing-jet" [airframe]="selectedAirframe" /></div>
-          <div class="section-label"><span>SELECT YOUR AIRCRAFT</span><span>GAMEPLAY-BALANCED PROFILES</span></div>
+          <div class="section-label"><span>SELECT YOUR AIRCRAFT</span></div>
           <div class="aircraft-options">
             @for (airframe of airframes; track airframe.id) {
               <button [class.chosen]="selectedAirframe === airframe" [attr.aria-pressed]="selectedAirframe === airframe" (click)="selectedAirframe = airframe">{{ airframe.label }}</button>
@@ -207,7 +207,7 @@
           </div>
           <div class="sortie-options"><label><input type="checkbox" [checked]="runwayStart" (change)="runwayStart = !runwayStart"><span>Start on runway<small>{{ runwayStart ? 'Cold roll · gear and flaps down' : 'Airborne · 3,600 ft · 320 kt' }}</small></span></label><span class="loadout">LOADOUT <b>6 × IR MSL</b><b>640 × 20 MM</b><b>24 × FLARE</b></span></div>
           <div class="briefing-footer"><button class="text-button" (click)="showHelp()">FLIGHT MANUAL <span>↗</span></button><span class="best-score">PERSONAL BEST <b>{{ best | number }}</b></span><div class="launch-actions">@if (started) { <button (click)="resume()">RESUME</button> }<button class="primary-button" (click)="start()">LAUNCH SORTIE <span>→</span></button></div></div>
-          <p class="briefing-note">PROCEDURAL WORLD · SIX DEGREES OF FREEDOM · DESKTOP + TOUCH · NO NETWORK REQUIRED</p>
+          <p class="briefing-note">PROCEDURAL WORLD · SIX DEGREES OF FREEDOM · DESKTOP + TOUCH</p>
         </section>
       } @else if (aircraft.phase === 'crashed') {
         <section class="dialog result" role="dialog" aria-modal="true" aria-labelledby="result-title"><span class="eyebrow danger-text">SORTIE ENDED</span><h1 id="result-title">Aircraft lost.</h1><p>{{ aircraft.crashReason }}. Review your approach and fly again.</p><div class="result-stats"><div><strong>{{ combat.kills }}</strong><span>CONFIRMED KILLS</span></div><div><strong>{{ elapsed }}</strong><span>FLIGHT TIME</span></div><div><strong>{{ score }}</strong><span>SCORE</span></div></div><div class="result-actions"><button (click)="openMenu()">MISSION SELECT</button><button class="primary-button" (click)="start()">FLY AGAIN →</button></div></section>

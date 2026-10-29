@@ -15,6 +15,8 @@ const version = `${match[1]}+${BigInt(match[2] ?? '0') + 1n}`;
 pkg.version = lock.version = lock.packages[''].version = version;
 await writeFile(packageUrl, `${JSON.stringify(pkg, null, 2)}\n`);
 await writeFile(lockUrl, `${JSON.stringify(lock, null, 2)}\n`);
-await writeFile(manifestUrl, manifest.replace(/^version\s*=\s*"[^"]*"[ \t]*$/m, `version = "${version}"`));
-await writeFile(new URL('version.js', root), `// Generated release metadata. Keep aligned with package.json.\nexport const VERSION = ${JSON.stringify(version)};\n`);
+// Only npm metadata uses the semver "+build" suffix; app-facing versions use dots.
+const displayVersion = version.replaceAll('+', '.');
+await writeFile(manifestUrl, manifest.replace(/^version\s*=\s*"[^"]*"[ \t]*$/m, `version = "${displayVersion}"`));
+await writeFile(new URL('version.js', root), `// Generated release metadata. Keep aligned with package.json.\nexport const VERSION = ${JSON.stringify(displayVersion)};\n`);
 console.log(`Build version: ${version}`);

@@ -377,3 +377,10 @@ $accent: #edb272;
     color: var(--accent);
   }
 }
+
+.dialog-top .app-version {
+  font: 8px monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  white-space: nowrap;
+}

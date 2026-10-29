@@ -2,6 +2,7 @@ import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, 
 import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { Aircraft, clamp, Scenario, STEP, terrainHeight } from './sim/flight';
 import { compressionBlocker, TIME_SCALES } from './sim/time-compression';
+import { VERSION } from '../../version.js';
 import { Combat } from './sim/combat';
 import { FlightRenderer, ScreenTarget } from './sim/renderer';
 import { FlightMusic } from './sim/music';
@@ -70,6 +71,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   });
   private animation = 0;
   private last = 0;
+  readonly version = VERSION;
   private accumulator = 0;
   timeScaleIndex = 0;
   get timeScale(): number { return TIME_SCALES[this.timeScaleIndex]; }
