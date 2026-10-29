@@ -1,0 +1,40 @@
+{
+  "name": "afterburner-xdc",
+  "version": "0.1.0+3",
+  "description": "Afterburner: an offline Angular 22 webxdc fighter flight simulator",
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "scripts": {
+    "start": "npm run build && node scripts/preview.mjs",
+    "preview": "node scripts/preview.mjs",
+    "prebuild": "node scripts/bump-build.mjs",
+    "build": "ng build && node scripts/package.mjs",
+    "prebuild:debug": "node scripts/bump-build.mjs",
+    "build:debug": "ng build --configuration development && node scripts/package.mjs --debug",
+    "test": "vitest run",
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/core": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
+    "rxjs": "^7.8.2",
+    "three": "^0.186.1",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "22.2.5",
+    "@angular/cli": "22.2.5",
+    "@angular/compiler-cli": "22.2.3",
+    "@types/node": "^26.0.0",
+    "@types/three": "^0.183.0",
+    "@webxdc/webxdc-dev": "^0.21.0",
+    "fflate": "^0.8.2",
+    "playwright": "^1.64.1",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.12"
+  }
+}

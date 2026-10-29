@@ -1,0 +1,296 @@
+$background: #0b141c;
+$accent: #edb272;
+
+.flight-info .autopilot-status {
+  min-height: 28px;
+  padding: 5px 7px;
+  font: 8px monospace;
+  background: var(--panel);
+
+  &.engaged {
+    color: var(--green);
+    border-color: var(--green);
+  }
+}
+
+.autopilot-settings.panel {
+  position: absolute;
+  top: max(135px, calc(env(safe-area-inset-top) + 115px));
+  left: 12px;
+  width: min(300px, calc(100% - 24px));
+  max-height: calc(100dvh - max(135px, calc(env(safe-area-inset-top) + 115px)) - 12px);
+  overflow-y: auto;
+  z-index: 9;
+
+  p, small {
+    font: 10px/1.6 monospace;
+    color: var(--muted);
+  }
+
+  .panel-heading button {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font: 9px monospace;
+    margin: 10px 0;
+  }
+
+  input {
+    width: 100px;
+    min-height: 36px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font: 13px monospace;
+    color: var(--text);
+
+    &:disabled { opacity: 0.5; }
+  }
+
+  .autopilot-actions {
+    display: flex;
+    gap: 6px;
+    button { flex: 1; }
+  }
+
+  .autopilot-automatic { margin-top: 8px; }
+
+  button { font: 8px monospace; min-height: 36px; }
+
+  .autopilot-disconnect {
+    width: 100%;
+    color: var(--accent);
+    margin: 3px 0 12px;
+  }
+
+  .autopilot-stall {
+    width: 100%;
+    margin-top: 8px;
+    color: var(--accent);
+  }
+}
+
+.music-settings.panel {
+  position: absolute;
+  top: max(80px, calc(env(safe-area-inset-top) + 60px));
+  right: 12px;
+  width: min(280px, calc(100% - 24px));
+  max-height: calc(100dvh - max(80px, calc(env(safe-area-inset-top) + 60px)) - 12px);
+  overflow-y: auto;
+  z-index: 8;
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 15px 0;
+  }
+
+  .panel-heading {
+    font-size: 7px;
+    gap: 8px;
+
+    button {
+      min-width: 32px;
+      min-height: 32px;
+    }
+  }
+
+  p, > small {
+    color: var(--muted);
+    font: 10px/1.6 monospace;
+  }
+
+  .music-toggle {
+    width: 100%;
+    min-height: 38px;
+    font: 9px monospace;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: flex;
+    justify-content: space-between;
+    font: 8px monospace;
+  }
+
+  input {
+    width: 100%;
+    min-height: 32px;
+    margin: 5px 0;
+  }
+
+  > small {
+    display: block;
+    font-size: 8px;
+  }
+}
+
+.music-button.music-muted {
+  opacity: 0.55;
+}
+
+.heading-display .heading-scale {
+  display: flex;
+  justify-content: space-between;
+  letter-spacing: 0;
+}
+
+.touch-right-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: auto;
+
+  .touch-target {
+    width: 126px;
+    min-height: 36px;
+    background: var(--panel);
+    font: 7px monospace;
+    letter-spacing: 1px;
+  }
+}
+
+.flight-deck {
+  --hud-center: 48%;
+
+  &.touch-mode {
+    .left-console,
+    .right-console {
+      bottom: auto;
+    }
+  }
+
+  .hud {
+    .attitude,
+    .speed-tape,
+    .altitude-tape {
+      top: var(--hud-center);
+    }
+  }
+}
+
+.acquisition-circle {
+  position: absolute;
+  left: 50%;
+  top: var(--hud-center);
+  transform: translate(-50%, -50%);
+  border: 1px dashed #c0f2c56b;
+  border-radius: 50%;
+
+  &.locked {
+    border-color: var(--danger);
+    border-style: solid;
+  }
+}
+
+@media (max-width: 800px) {
+  .flight-deck {
+    --hud-center: 42%;
+  }
+}
+
+@media (max-height: 650px) and (min-width: 601px) {
+  .flight-deck {
+    --hud-center: 47%;
+  }
+
+  .flight-deck.touch-mode {
+    .throttle-panel {
+      .fuel-line,
+      .fuel-bar {
+        display: none;
+      }
+
+      .panel-heading {
+        margin-bottom: 8px;
+      }
+
+      .throttle-value {
+        font-size: 24px;
+      }
+
+      .throttle-slider {
+        height: 20px;
+      }
+    }
+
+    .configuration {
+      margin-top: 6px;
+      gap: 4px;
+
+      button {
+        height: 24px;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) and (max-height: 760px) {
+  .flight-deck {
+    --hud-center: 46%;
+  }
+
+  .flight-deck.touch-mode {
+    .left-console,
+    .right-console {
+      top: 95px;
+    }
+
+    .heading-display {
+      top: 92px;
+    }
+
+    .tape-values > span:first-child,
+    .tape-values > span:last-child {
+      display: none;
+    }
+
+    .g-readout,
+    .vs-readout {
+      top: calc(46% + 108px);
+    }
+
+    .warning {
+      top: calc(46% + 78px);
+    }
+
+    .configuration {
+      top: auto;
+      bottom: 103px;
+      left: 12px;
+      right: 12px;
+      width: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .notification {
+      bottom: 237px;
+      max-width: 200px;
+    }
+  }
+}
+
+:root{color-scheme:dark;--bg:#{$background};--panel:rgba(10,23,31,.85);--line:rgba(184,216,218,.17);--text:#e2ebeb;--muted:#89a0a7;--green:#c0f2c5;--accent:#{$accent};--danger:#ff8c70;font-family:Arial,Helvetica,sans-serif;font-synthesis:none}
+*{box-sizing:border-box}html,body,app-root{display:block;width:100%;height:100%;margin:0;overflow:hidden}body{background:var(--bg)}button,input{-webkit-tap-highlight-color:transparent}button{font:inherit;color:inherit;cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:4px}button:hover{border-color:var(--accent);background:rgba(237,178,114,.07)}button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}button:disabled{opacity:.4;cursor:not-allowed}kbd{font:9px monospace;border:1px solid #53656c;padding:2px 4px;border-radius:3px;color:#b1c2c7}small{font-size:10px}button svg{fill:currentColor}input{accent-color:var(--accent)}.flight-deck{position:relative;width:100%;height:100%;min-height:320px;background:var(--bg);overflow:hidden}.world{display:block;position:absolute;inset:0;width:100%;height:100%}.vignette{pointer-events:none;position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,18,26,.25),transparent 25%,transparent 55%,rgba(7,18,26,.6)),radial-gradient(ellipse at center,transparent 35%,rgba(4,16,24,.28));}.topbar{position:absolute;top:0;left:0;right:0;min-height:76px;padding:14px 28px;padding-top:max(14px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:25px;border-bottom:1px solid var(--line);background:rgba(8,20,29,.92);z-index:4}.brand{border:0;display:flex;align-items:center;gap:12px;padding:0;text-align:left;background:none!important}.brand svg{width:29px;height:36px;color:var(--accent)}.brand span{font-size:19px;font-weight:800;letter-spacing:3px}.brand small{display:block;font:8px monospace;letter-spacing:2.1px;color:var(--muted);margin-top:5px}.mission-strip{display:flex;gap:12px;align-items:center;font-size:12px;letter-spacing:.5px}.mission-strip small{display:block;font:8px monospace;letter-spacing:1.6px;color:var(--muted);margin-top:6px}.live-dot,.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#afd4ad;box-shadow:0 0 9px #bce3b540;flex-shrink:0}.top-actions{display:flex;align-items:center;gap:9px}.top-actions button{height:34px;padding:0 12px;font:9px monospace;letter-spacing:1px}.top-actions .icon-button{width:34px;padding:0;font:17px monospace}.timer{font:15px monospace;letter-spacing:2px;text-align:right;margin-right:15px}.timer small{display:block;letter-spacing:1.2px;font-size:7px;color:var(--muted);margin-top:3px}.flight-info,.environment-info{position:absolute;top:99px;display:flex;gap:15px;align-items:center;font:9px monospace;letter-spacing:1.2px;color:var(--text);z-index:2}.flight-info{left:28px}.tag{border:1px solid #b1c6c866;padding:5px 7px}.muted{color:var(--muted)}.environment-info{right:28px;display:block;text-align:right;font-size:8px}.environment-info span{display:block;margin-bottom:8px}.environment-info i{display:inline-block;width:5px;height:5px;background:#cbe1be;border-radius:50%;margin-right:5px}
+.hud{position:absolute;inset:0;pointer-events:none;color:var(--green);font-family:monospace;text-shadow:0 1px 3px #162b25a0}.heading-display{position:absolute;top:135px;left:50%;transform:translateX(-50%);text-align:center}.heading-display>span{font-size:8px;letter-spacing:2px;opacity:.8}.heading-display strong{display:block;font-size:25px;letter-spacing:4px;font-weight:400;margin:4px 0}.heading-display strong small{font-size:13px}.heading-scale{width:220px;white-space:nowrap;overflow:hidden;font-size:10px;letter-spacing:2px;padding:5px 0;border-top:1px solid #c0f2c577}.heading-display>b{font-size:11px;display:block;margin-top:-3px}.attitude{position:absolute;width:400px;height:320px;left:50%;top:48%;transform:translate(-50%,-50%);stroke:var(--green);stroke-width:1.1;fill:none;overflow:visible}.attitude text{fill:var(--green);stroke:none;font:9px monospace;text-anchor:middle}.attitude .negative-pitch{stroke-dasharray:5 4}.attitude .bank-arc{opacity:.65}.attitude .acquisition{stroke-dasharray:2 8;opacity:.5}.attitude .acquisition.locked{stroke:var(--danger);stroke-dasharray:none;opacity:1}.boresight{stroke-width:1.7}.gun-cross{opacity:.6}.speed-tape,.altitude-tape{position:absolute;top:48%;transform:translateY(-50%);text-align:center;width:95px}.speed-tape{left:calc(50% - 285px)}.altitude-tape{right:calc(50% - 285px)}.hud-label{font-size:8px;letter-spacing:1.5px}.tape-values{display:flex;flex-direction:column;gap:18px;margin:17px 0}.tape-values>span{font-size:12px;opacity:.7}.tape-values strong{font-size:25px;font-weight:400;border:1px solid #c0f2c5aa;background:#15332b40;padding:7px 10px;position:relative}.tape-values strong small{display:block;font-size:8px;letter-spacing:2px;margin-top:3px}.speed-tape strong:after,.altitude-tape strong:before{content:'';position:absolute;top:16px;width:7px;height:7px;border-top:1px solid;border-right:1px solid;background:#2c4b3b;transform:rotate(45deg);right:-5px}.altitude-tape strong:before{left:-5px;right:auto;transform:rotate(-135deg)}.speed-tape>small,.altitude-tape>small{font-size:10px}.g-readout,.vs-readout{position:absolute;top:calc(48% + 152px);font-size:16px}.g-readout{left:calc(50% - 235px)}.vs-readout{right:calc(50% - 235px);text-align:right}.g-readout small,.vs-readout small{display:block;font-size:9px;margin-top:8px;opacity:.8}.flight-path{position:absolute;transform:translate(-50%,-50%);width:18px;height:18px;border:1.5px solid var(--green);border-radius:50%}.flight-path:before,.flight-path:after{position:absolute;content:'';height:1px;width:12px;background:var(--green);top:7px;left:-13px}.flight-path:after{left:17px}.flight-path span{position:absolute;height:8px;top:-8px;width:1px;background:var(--green);left:7px}.warning{position:absolute;top:calc(48% + 105px);left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:2px;color:#ffb29c;text-shadow:0 0 8px #401500;white-space:nowrap;background:#301c1760;padding:7px 12px;border:1px solid #fc9b7955}.target-marker{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;color:#ffb095;border:0;background:none!important;padding:12px;text-shadow:0 1px 3px #152b2f}.target-box{display:block;height:25px;width:25px;border:1px solid #ffb09599;transform:rotate(45deg)}.target-marker.selected .target-box{width:36px;height:36px;border:1.5px solid #ffc19c;transform:none}.target-marker.target-locked .target-box{border-color:#ff7757;box-shadow:0 0 8px #ff775755}.target-marker small{position:absolute;top:calc(100% - 5px);left:50%;transform:translateX(-50%);white-space:nowrap;font:9px monospace}
+.left-console,.right-console{position:absolute;top:50%;transform:translateY(-40%);width:175px;z-index:3}.left-console{left:28px}.right-console{right:28px;width:190px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:15px;backdrop-filter:blur(10px)}.panel-heading{font:8px monospace;letter-spacing:1.4px;color:#b2c7cc;display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.panel-heading .status-dot{width:4px;height:4px}.throttle-value{display:flex;align-items:baseline;font:32px monospace;gap:3px}.throttle-value>small{font-size:13px;color:var(--muted)}.throttle-value>span{margin-left:auto;font:9px monospace;color:var(--muted);padding:3px 4px;border:1px solid var(--line);border-radius:2px}.throttle-value>span.burning{color:var(--accent);border-color:#edb27266}.throttle-slider{display:block;width:100%;margin:18px 0 6px;cursor:pointer;height:24px}.scale-labels{display:flex;justify-content:space-between;color:var(--muted);font:7px monospace;letter-spacing:1px}.fuel-line{margin-top:23px;border-top:1px solid var(--line);padding-top:13px;display:flex;justify-content:space-between;align-items:baseline;font:8px monospace;color:var(--muted)}.fuel-line strong{font:14px monospace;color:var(--text)}.fuel-line small{font-size:7px;color:var(--muted)}.fuel-bar{height:3px;background:#74888a40;margin-top:10px}.fuel-bar span{height:100%;display:block;background:var(--green)}.configuration{display:flex;flex-direction:column;margin-top:9px;gap:5px}.configuration button{height:34px;background:var(--panel);display:flex;align-items:center;padding:0 10px;font:8px monospace;letter-spacing:1px;gap:8px}.configuration button .indicator{width:4px;height:4px;background:#60737a;border-radius:50%}.configuration button.active .indicator{background:var(--green);box-shadow:0 0 8px #c0f2c566}.configuration kbd{font-size:7px;padding:1px 3px;opacity:.7}.configuration b{font-size:8px;font-weight:400;margin-left:auto;color:var(--muted)}.configuration button.active b{color:var(--green)}.radar-panel{padding:13px}.radar-panel .panel-heading{font-size:7px;letter-spacing:1px;margin-bottom:8px}.radar-panel svg{display:block;width:100%;stroke:#87bfa14a;fill:none;stroke-width:.4}.radar-panel text{stroke:none;fill:#9dbaa6;font:3px monospace;text-anchor:middle}.radar-grid{opacity:.5}.radar-cone{fill:#abdcb00b;stroke:#9bca9840}.radar-player{fill:#c0f2c5;stroke:none}.radar-contact{stroke:#f6aa8c!important;fill:#f6aa8c!important}.radar-contact.chosen{stroke:#ffcf9c!important;stroke-width:1;fill:none!important}.radar-footer{display:flex;justify-content:space-between;font:7px monospace;letter-spacing:.3px;color:var(--muted);margin-top:8px}.target-panel{margin-top:10px;padding:12px}.target-panel .panel-heading{font-size:7px;letter-spacing:1px;margin-bottom:12px}.target-panel .panel-heading button{font:7px monospace;border:0;padding:2px;color:var(--accent)}.target-panel>strong{display:flex;justify-content:space-between;font:11px monospace;color:#e5c4a4}.target-panel strong small{font-size:7px}.lock-bar{height:3px;background:#718b8740;margin-top:14px}.lock-bar span{display:block;height:100%;background:var(--accent)}.target-meta{display:flex;justify-content:space-between;font:7px monospace;margin-top:8px;color:var(--muted)}
+.notification{position:absolute;bottom:163px;left:50%;transform:translateX(-50%);font:11px monospace;line-height:1.5;color:#d2dfdf;text-align:center;max-width:500px;opacity:0;pointer-events:none}.notification.show{opacity:1}.notification>span{display:block;font-size:7px;letter-spacing:2px;color:var(--accent);margin-bottom:5px}.mission-success,.landing-report{position:absolute;top:244px;left:50%;transform:translateX(-50%);font:11px monospace;color:var(--green);text-align:center;letter-spacing:2px;white-space:nowrap}.mission-success span{display:block;font-size:8px;margin-top:7px;letter-spacing:1px}.landing-report{top:auto;bottom:205px;font-size:9px;letter-spacing:.5px}
+.bottom-bar{position:absolute;left:28px;right:28px;bottom:47px;min-height:82px;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid var(--line);background:rgba(8,20,29,.92);border-radius:5px;z-index:4}.airframe-status{display:flex;gap:12px;align-items:center}.airframe-icon{font-size:32px;transform:scaleX(.65);color:#c3d4d7}.airframe-status>div>span{font:7px monospace;letter-spacing:1px;color:var(--muted);display:block}.airframe-status strong{font:24px monospace;display:block;margin-top:5px}.airframe-status strong small{font-size:10px;color:var(--muted);margin-left:4px}.health-segments{height:29px;width:4px;background:#87999e30;position:relative}.health-segments span{position:absolute;bottom:0;background:var(--green);width:100%}.phase-tag{text-transform:uppercase;font:8px monospace;letter-spacing:1px;color:var(--muted);border:1px solid var(--line);padding:6px 8px;margin-left:10px}.weapons{display:flex;align-items:center;gap:15px}.weapon{display:flex;align-items:center;gap:12px;padding:10px 14px;min-height:50px;text-align:left;border-color:transparent;border-left-color:var(--line);border-radius:0}.weapon-symbol{font-size:27px;color:var(--muted)}.weapon>span:not(.weapon-symbol){font:9px monospace;letter-spacing:1px}.weapon small{display:block;font:6px monospace;letter-spacing:1px;color:var(--muted);margin-top:5px;white-space:nowrap}.weapon strong{font:24px monospace;margin-left:8px;font-weight:400}.weapon kbd{font-size:7px;color:var(--muted);padding:2px 3px;margin-left:5px}.weapon.weapon-ready{border:1px solid #edb27288;background:#edb2720a;color:var(--accent)}.weapon-ready .weapon-symbol{color:var(--accent)}.kill-counter{display:flex;align-items:center;gap:9px;border-left:1px solid var(--line);padding-left:20px}.kill-counter strong{font:30px monospace;color:var(--accent)}.kill-counter>span{font:6px monospace;letter-spacing:1px;color:var(--muted)}.kill-counter small{display:block;font-size:8px;letter-spacing:2px;margin-top:5px}.keyboard-hint{position:absolute;bottom:18px;left:28px;right:28px;display:flex;justify-content:center;align-items:center;gap:24px;font:7px monospace;letter-spacing:.5px;color:#a6bbc1}.keyboard-hint kbd{font-size:7px;padding:2px 3px;margin-right:4px}.keyboard-hint button{font:7px monospace;color:var(--accent);border:0;letter-spacing:.5px}.danger-text{color:var(--danger)!important}.hold-button{touch-action:none;user-select:none;-webkit-user-select:none}.touch-flight-controls{display:none}
+.modal-backdrop{position:absolute;inset:0;background:#030e18a3;backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:25px;z-index:20;overflow:auto}.dialog{width:min(980px,100%);background:linear-gradient(125deg,#14252e,#0c1922 70%);border:1px solid #79929740;border-radius:10px;padding:32px 38px;box-shadow:0 25px 100px #0007}.dialog-top{display:flex;justify-content:space-between;align-items:center;gap:10px}.eyebrow{font:9px monospace;letter-spacing:2px;color:var(--accent);display:inline-flex;align-items:center;gap:9px}.offline-label{font:7px monospace;letter-spacing:1px;color:#b4cfb3;border:1px solid #b4cfb33a;border-radius:3px;padding:6px 8px}.dialog h1{font-size:54px;line-height:1.1;letter-spacing:-2px;margin:26px 0 12px;font-weight:500}.dialog h1 em{font-family:Georgia,serif;color:var(--accent);font-weight:400}.dialog p{font-size:12px;color:#9eb2ba;line-height:1.7}.briefing-title{display:flex;justify-content:space-between;align-items:center}.briefing-title p{margin:0 0 25px}.briefing-jet{height:120px;width:180px;fill:#a1bcc018;stroke:#c0d3d74a;stroke-width:1;margin:0 50px 0 20px;transform:rotate(25deg)}.briefing-jet path+path{fill:none;stroke:#b3c9c738}.section-label{font:8px monospace;letter-spacing:1px;color:var(--muted);display:flex;justify-content:space-between;margin:9px 0 13px}.section-label span:last-child{font-size:7px}.scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.scenario-card{display:flex;flex-direction:column;position:relative;text-align:left;padding:18px;background:#b8d0d103;border:1px solid var(--line);border-radius:5px;min-height:215px}.scenario-card.chosen{border-color:var(--accent);background:linear-gradient(135deg,#edb27210,#edb27204)}.scenario-card.chosen:after{content:'✓';position:absolute;right:14px;top:15px;font-size:12px;color:var(--accent)}.card-number{font:12px monospace;color:#96acb2;letter-spacing:1px}.card-number small{font-size:6px;letter-spacing:1px;margin-left:8px}.card-symbol{font-size:30px;line-height:1;color:#91acb3;margin:17px 0 12px}.scenario-card.chosen .card-symbol{color:var(--accent)}.scenario-card strong{font-size:15px;font-weight:500;letter-spacing:.1px}.scenario-card p{font-size:10px;line-height:1.6;margin:9px 0 18px;max-width:200px}.card-footer{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:12px;margin-top:auto;width:100%;font:6px monospace;letter-spacing:.5px;color:var(--muted)}.card-footer b{font-weight:400;color:#d1b598}.sortie-options{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:20px 0 25px}.sortie-options label{display:flex;align-items:center;gap:10px;font-size:11px;cursor:pointer}.sortie-options input{width:16px;height:16px;margin:0}.sortie-options label small{display:block;font:8px monospace;color:var(--muted);margin-top:4px}.loadout{font:7px monospace;display:flex;align-items:center;gap:12px;color:var(--muted)}.loadout b{font-weight:400;border:1px solid var(--line);padding:6px;color:#bacbd0;border-radius:3px;white-space:nowrap}.briefing-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;border-top:1px solid var(--line);padding-top:24px}.text-button{font:9px monospace;border:0;padding:10px 0;letter-spacing:1px;color:#a3b8bd}.text-button span{color:var(--accent);margin-left:8px}.best-score{font:7px monospace;letter-spacing:1px;color:var(--muted)}.best-score b{font-size:12px;font-weight:400;display:block;color:#cad9d9;margin-top:5px}.launch-actions{display:flex;gap:10px}.launch-actions>button:not(.primary-button){font:9px monospace;padding:10px}.primary-button{background:var(--accent);color:#1b2225;border:1px solid var(--accent);font:10px monospace;letter-spacing:1px;padding:16px 23px;font-weight:bold;border-radius:3px;white-space:nowrap}.primary-button:hover{background:#ffca91;color:#162129}.primary-button span{margin-left:24px}.briefing-note{font:6px monospace!important;letter-spacing:1.2px;text-align:center;color:#667e88!important;margin:21px 0 -7px}.manual .dialog-top>button{padding:6px 10px;font-size:12px}.manual h1{font-size:38px;letter-spacing:-1px;margin:20px 0 8px}.manual .intro{margin:0}.manual-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 30px;margin:18px 0}.manual h3{font:9px monospace;letter-spacing:1.5px;color:var(--accent);margin:12px 0}.manual-grid p{font-size:11px;line-height:1.8;margin:8px 0}.manual kbd{font-size:8px}.manual-footer{border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;gap:15px;justify-content:space-between}.manual-footer>span{font:6px monospace;letter-spacing:.6px;color:var(--muted)}.pause-dialog,.error-dialog,.result{max-width:570px;text-align:center;padding:40px}.pause-dialog h1,.error-dialog h1,.result h1{font-size:42px;letter-spacing:-1px}.pause-dialog>button{display:block;width:100%;margin-top:12px;padding:14px;font:10px monospace}.pause-dialog p{margin-bottom:25px}.result-stats{display:flex;justify-content:space-around;gap:20px;padding:25px 0;margin:20px 0;border-block:1px solid var(--line)}.result-stats strong{display:block;font:28px monospace;color:var(--accent)}.result-stats span{display:block;font:7px monospace;color:var(--muted);letter-spacing:1px;margin-top:7px}.result-actions{display:flex;justify-content:center;gap:12px}.result-actions>button:not(.primary-button){font:9px monospace;padding:12px}
+@media(min-width:1450px){.left-console{left:40px;width:195px}.right-console{right:40px;width:210px}.attitude{width:440px;height:352px}.speed-tape{left:calc(50% - 315px)}.altitude-tape{right:calc(50% - 315px)}}@media(max-width:1150px){.topbar{padding:12px 18px;gap:10px;min-height:68px}.brand span{font-size:16px;letter-spacing:2px}.brand small{font-size:6px}.mission-strip{font-size:10px}.mission-strip small{font-size:6px}.timer{display:none}.flight-info{left:18px;top:87px;font-size:8px}.environment-info{right:18px;top:87px}.left-console{left:18px;width:140px}.right-console{right:18px;width:150px}.panel{padding:11px}.panel-heading{font-size:7px;letter-spacing:1px}.radar-panel .panel-heading{font-size:6px}.target-panel>strong{font-size:9px}.target-meta{font-size:6px}.throttle-value{font-size:28px}.speed-tape{left:calc(50% - 240px);width:80px}.altitude-tape{right:calc(50% - 240px);width:80px}.attitude{width:350px;height:280px}.tape-values strong{font-size:22px}.bottom-bar{left:18px;right:18px;padding:12px;gap:10px}.phase-tag,.kill-counter{display:none}.weapon{gap:9px;padding:8px 12px}.weapon kbd{display:none}.weapons{gap:8px}.airframe-status{gap:8px}.keyboard-hint{font-size:6px;gap:15px}.keyboard-hint kbd{font-size:6px}.g-readout{left:calc(50% - 195px)}.vs-readout{right:calc(50% - 195px)}}
+@media(max-width:800px){.mission-strip{display:none}.topbar{min-height:61px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top))}.brand svg{width:22px;height:29px}.brand span{font-size:14px;letter-spacing:2px}.brand small{font-size:5px;letter-spacing:1.7px}.top-actions{gap:6px}.top-actions button{font-size:8px;padding:0 8px;height:30px}.top-actions .icon-button{width:30px;font-size:15px}.expand-button{display:none}.flight-info{top:76px;left:14px;gap:8px}.flight-info .muted{display:none}.environment-info{top:77px;right:14px;font-size:6px}.environment-info span+span{display:none}.heading-display{top:105px}.heading-display strong{font-size:21px}.heading-scale{width:160px;font-size:8px}.heading-display>span{font-size:7px}.left-console{left:14px;width:115px;top:auto;bottom:150px;transform:none}.right-console{right:14px;width:126px;top:auto;bottom:150px;transform:none}.fuel-line{margin-top:10px;padding-top:10px;font-size:7px}.fuel-line strong{font-size:11px}.panel-heading{font-size:6px;margin-bottom:8px}.throttle-value{font-size:22px}.throttle-value>span{font-size:7px}.throttle-slider{margin-top:8px}.configuration{gap:4px}.configuration button{height:29px;font-size:7px;padding:0 7px;gap:6px}.configuration kbd{display:none}.configuration b{font-size:7px}.radar-panel{padding:9px}.radar-panel .panel-heading{font-size:5px;letter-spacing:.5px}.radar-footer{font-size:5px}.target-panel{padding:9px;margin-top:6px}.target-panel .panel-heading{font-size:5px;margin-bottom:8px}.target-panel>strong{font-size:8px}.target-meta{font-size:5px}.lock-bar{margin-top:9px}.attitude{width:300px;height:240px;top:42%}.speed-tape,.altitude-tape{top:42%;width:67px}.speed-tape{left:calc(50% - 207px)}.altitude-tape{right:calc(50% - 207px)}.tape-values{gap:14px;margin:12px 0}.tape-values strong{font-size:19px;padding:6px}.tape-values strong small{font-size:7px}.tape-values>span{font-size:10px}.hud-label{font-size:6px;letter-spacing:.8px}.g-readout,.vs-readout{top:calc(42% + 115px);font-size:12px}.g-readout{left:calc(50% - 170px)}.vs-readout{right:calc(50% - 170px)}.g-readout small,.vs-readout small{font-size:7px;margin-top:5px}.warning{top:calc(42% + 85px);font-size:9px;letter-spacing:1px}.bottom-bar{left:14px;right:14px;bottom:43px;min-height:75px;padding:10px}.weapon{gap:8px;padding:7px 9px;min-height:44px}.weapon-symbol{font-size:23px}.weapon>span:not(.weapon-symbol){font-size:8px}.weapon small{font-size:5px;letter-spacing:.5px}.weapon strong{font-size:21px;margin-left:2px}.airframe-icon{display:none}.airframe-status strong{font-size:20px}.airframe-status>div>span{font-size:6px}.weapons{gap:3px}.keyboard-hint{bottom:15px;left:14px;right:14px;gap:12px}.keyboard-hint>span{display:none}.notification{bottom:130px;font-size:10px;width:calc(100% - 40px);max-width:420px}.mission-success{top:190px;font-size:9px}.landing-report{bottom:170px;font-size:8px}.dialog{padding:24px;max-height:calc(100dvh - 32px);overflow-y:auto}.modal-backdrop{padding:16px}.dialog h1{font-size:44px;margin-top:22px}.briefing-jet{height:90px;width:110px;margin-right:15px}.scenario-grid{gap:8px}.scenario-card{padding:13px;min-height:200px}.scenario-card strong{font-size:13px}.scenario-card p{font-size:9px}.card-number small{font-size:5px;margin-left:5px}.card-footer{font-size:5px;letter-spacing:0}.loadout{gap:6px;font-size:6px}.loadout b{padding:5px;font-size:6px}.best-score{display:none}.briefing-footer{padding-top:18px}.briefing-note{font-size:5px!important}.primary-button{padding:14px 18px;font-size:9px}.primary-button span{margin-left:10px}.manual h1{font-size:32px}.manual-grid{gap:10px 20px}.manual-grid p{font-size:10px}.manual h3{font-size:8px}.manual-footer>span{max-width:220px;line-height:1.7}}
+.touch-mode .touch-flight-controls{display:flex;position:absolute;bottom:148px;left:20px;right:20px;justify-content:space-between;align-items:flex-end;pointer-events:none;z-index:5}.stick-group{pointer-events:auto;text-align:center}.stick-group>span{font:7px monospace;letter-spacing:1px;color:#d1dfe0}.stick-group small{display:block;font:5px monospace;letter-spacing:.5px;margin-top:3px;color:#adbec3}.flight-stick{position:relative;width:125px;height:125px;border-radius:50%;border:1px solid #aec5c854;background:#10263355;margin-top:10px;touch-action:none;user-select:none;-webkit-user-select:none}.flight-stick:before,.flight-stick:after{content:'';position:absolute;background:#b4caca33}.flight-stick:before{height:1px;width:80%;left:10%;top:50%}.flight-stick:after{width:1px;height:80%;left:50%;top:10%}.stick-knob{position:absolute;width:43px;height:43px;border-radius:50%;left:calc(50% - 21.5px);top:calc(50% - 21.5px);border:1px solid #d3c4a1b0;background:radial-gradient(circle,#334a4c,#1b333de0);box-shadow:0 3px 12px #0006;pointer-events:none}.rudder-buttons{display:flex;align-items:center;gap:8px;pointer-events:auto}.rudder-buttons button{width:44px;height:44px;font-size:21px;background:var(--panel);touch-action:none;user-select:none}.rudder-buttons>span{font:6px monospace;color:var(--muted)}.touch-mode .left-console{top:175px;transform:none}.touch-mode .right-console{top:175px;transform:none}.touch-mode .keyboard-hint>span{display:none}.touch-mode .keyboard-hint button{display:inline-block}
+@media(max-width:600px){.brand small{display:none}.brand span{font-size:12px;letter-spacing:1.5px}.brand{gap:7px}.top-actions button{font-size:7px;padding:0 7px}.top-actions .icon-button{width:28px}.top-actions{gap:5px}.topbar{padding-inline:12px;min-height:56px}.flight-info{top:67px;left:12px;font-size:6px;gap:6px}.tag{padding:4px 5px}.environment-info{top:70px;right:12px;font-size:5px}.heading-display{top:103px}.heading-scale{width:125px;font-size:7px}.heading-display strong{font-size:19px}.attitude{top:42%;width:255px;height:204px}.speed-tape{left:12px}.altitude-tape{right:12px}.speed-tape,.altitude-tape{width:60px;top:42%}.tape-values{gap:16px}.tape-values>span{font-size:8px}.tape-values strong{font-size:17px}.hud-label{font-size:5px}.speed-tape>small,.altitude-tape>small{font-size:8px}.g-readout,.vs-readout{top:calc(42% + 108px);font-size:10px}.g-readout{left:30px}.vs-readout{right:30px}.g-readout small,.vs-readout small{font-size:6px}.warning{top:calc(42% + 78px);font-size:7px;max-width:230px;padding:6px 8px}.left-console{width:104px;left:12px;bottom:132px}.right-console{width:108px;right:12px;bottom:132px}.throttle-panel{padding:9px}.throttle-panel .panel-heading{font-size:5px}.fuel-line{font-size:6px}.fuel-line strong{font-size:9px}.fuel-bar{margin-top:7px}.scale-labels{font-size:5px}.configuration button{height:27px;font-size:6px}.configuration b{font-size:6px}.target-panel{display:none}.radar-panel .panel-heading{font-size:4.5px}.radar-footer{font-size:4.5px}.bottom-bar{bottom:max(28px,env(safe-area-inset-bottom));left:10px;right:10px;min-height:70px;padding:7px}.airframe-status{display:none}.weapons{width:100%;justify-content:space-between;gap:0}.weapon{padding:7px;gap:6px;flex:1;justify-content:center}.weapon-symbol{font-size:20px}.weapon strong{font-size:20px}.weapon>span:not(.weapon-symbol){font-size:7px;letter-spacing:.6px}.weapon small{font-size:4px;letter-spacing:0}.weapon:first-child{border-left-color:transparent}.keyboard-hint{bottom:8px;left:12px;right:12px}.keyboard-hint button{font-size:6px}.notification{bottom:107px;font-size:8px;max-width:310px;line-height:1.4}.notification>span{font-size:5px;margin-bottom:2px}.mission-success{top:178px;font-size:8px;letter-spacing:1px}.mission-success span{font-size:6px}.landing-report{bottom:226px;font-size:7px;width:90%;white-space:normal}.target-marker small{font-size:7px}.target-marker.selected .target-box{width:29px;height:29px}.target-box{width:20px;height:20px}.touch-mode .touch-flight-controls{left:12px;right:12px;bottom:133px}.touch-mode .flight-stick{width:115px;height:115px}.touch-mode .left-console{top:165px;width:104px}.touch-mode .right-console{top:165px;width:108px}.touch-mode .configuration{position:fixed;top:calc(100dvh - 365px);right:12px;width:108px;left:auto;margin-top:0}.touch-mode .throttle-panel .fuel-line,.touch-mode .fuel-bar{display:none}.touch-mode .throttle-slider{margin-top:4px;margin-bottom:0}.touch-mode .panel-heading{margin-bottom:4px}.touch-mode .scale-labels{margin-top:1px}.touch-mode .throttle-value{font-size:20px}.touch-mode .rudder-buttons{gap:5px;margin-bottom:3px}.touch-mode .rudder-buttons button{width:39px;height:42px}.touch-mode .rudder-buttons>span{font-size:5px}.touch-mode .stick-group>span{font-size:6px}.touch-mode .stick-group small{font-size:4px}.touch-mode .notification{bottom:108px}.dialog{padding:20px 17px;border-radius:7px;max-height:calc(100dvh - 20px)}.modal-backdrop{padding:10px}.dialog-top .eyebrow{font-size:6px;letter-spacing:1px;gap:6px}.offline-label{font-size:5px;padding:5px;letter-spacing:.5px}.briefing-title h1{font-size:39px;margin:23px 0 9px}.briefing-title p{font-size:9px;margin-bottom:17px}.briefing-jet{height:75px;width:75px;margin:0 10px 0 0}.section-label{font-size:6px;margin:5px 0 10px}.section-label span:last-child{font-size:5px}.scenario-grid{grid-template-columns:1fr;gap:8px}.scenario-card{min-height:0;padding:12px 12px 12px 58px;display:block}.card-number{font-size:8px}.card-number small{font-size:5px;margin-left:6px}.card-symbol{position:absolute;left:17px;top:50%;transform:translateY(-50%);margin:0;font-size:25px}.scenario-card strong{display:block;font-size:13px;margin-top:6px}.scenario-card p{font-size:9px;margin:5px 0 0;max-width:none;line-height:1.4;padding-right:7px}.card-footer{display:none}.scenario-card.chosen:after{top:11px;right:11px;font-size:10px}.sortie-options{margin:16px 0;align-items:flex-start}.sortie-options label{font-size:10px;gap:8px}.sortie-options label small{font-size:6px}.loadout{display:none}.briefing-footer{padding-top:16px;gap:8px}.text-button{font-size:7px;letter-spacing:.5px}.text-button span{margin-left:3px}.launch-actions{gap:6px}.launch-actions>button:not(.primary-button){font-size:7px;padding:8px}.primary-button{padding:14px 13px;font-size:8px;letter-spacing:.6px}.primary-button span{margin-left:6px}.briefing-note{font-size:4px!important;letter-spacing:.6px;line-height:1.8!important;margin-top:15px}.manual h1{font-size:28px}.manual .intro{font-size:10px}.manual-grid{grid-template-columns:1fr;gap:5px}.manual-grid p{font-size:10px}.manual-footer{gap:10px}.manual-footer>span{font-size:5px;max-width:165px}.pause-dialog,.result,.error-dialog{padding:30px 20px}.result h1,.pause-dialog h1,.error-dialog h1{font-size:34px}.result-stats{gap:10px}.result-stats strong{font-size:23px}.result-stats span{font-size:6px}.result-actions>button:not(.primary-button){font-size:8px}}
+@media(max-height:650px) and (min-width:601px){.topbar{min-height:52px;padding-block:8px}.brand svg{height:28px}.brand span{font-size:13px}.brand small{font-size:5px}.flight-info,.environment-info{top:65px}.heading-display{top:65px}.heading-display strong{font-size:18px;margin:3px 0}.heading-display>span{font-size:6px}.heading-scale{font-size:7px;padding:3px 0}.attitude{width:280px;height:224px;top:47%}.speed-tape,.altitude-tape{top:47%;width:65px}.speed-tape{left:calc(50% - 200px)}.altitude-tape{right:calc(50% - 200px)}.tape-values{gap:10px;margin:10px 0}.tape-values strong{font-size:18px;padding:4px}.tape-values>span{font-size:9px}.hud-label{font-size:5px}.g-readout,.vs-readout{top:calc(47% + 90px);font-size:10px}.g-readout{left:calc(50% - 165px)}.vs-readout{right:calc(50% - 165px)}.warning{top:calc(47% + 65px);font-size:8px}.left-console,.right-console{width:125px;top:105px;bottom:auto;transform:none}.right-console{width:125px}.target-panel{display:none}.panel{padding:9px}.fuel-line{margin-top:9px;padding-top:9px}.throttle-slider{margin-top:6px}.configuration button{height:26px;font-size:6px}.configuration b{font-size:6px}.configuration kbd{display:none}.bottom-bar{bottom:25px;min-height:62px;padding:6px 10px}.keyboard-hint{bottom:7px}.weapon{min-height:42px;padding:6px 10px}.weapon strong{font-size:20px}.weapon-symbol{font-size:22px}.airframe-status strong{font-size:18px}.notification{bottom:95px;font-size:8px}.notification>span{font-size:5px;margin-bottom:2px}.mission-success{top:120px;font-size:8px}.mission-success span{font-size:6px}.landing-report{bottom:124px;font-size:7px}.touch-mode .touch-flight-controls{left:160px;right:160px;bottom:100px}.touch-mode .flight-stick{width:96px;height:96px;margin-top:5px}.touch-mode .stick-group>span{font-size:5px}.touch-mode .stick-group small{font-size:4px}.touch-mode .rudder-buttons button{width:36px;height:36px}.touch-mode .left-console,.touch-mode .right-console{top:105px}.dialog{padding:20px 25px}.dialog h1{font-size:34px;margin:15px 0 8px}.briefing-title p{font-size:10px;margin-bottom:10px}.briefing-jet{height:75px;width:110px}.scenario-card{min-height:155px;padding:12px}.card-symbol{font-size:24px;margin:10px 0}.scenario-card p{font-size:9px;margin:6px 0 10px}.scenario-card strong{font-size:13px}.card-footer{padding-top:8px}.sortie-options{margin:14px 0}.briefing-footer{padding-top:14px}.briefing-note{margin-top:13px}.manual h1{font-size:28px}.manual-grid p{font-size:10px}.manual-grid{margin-top:10px;gap:5px 20px}.manual h3{margin-top:5px}}
+@media(max-width:380px){.brand span{font-size:10px;letter-spacing:1px}.top-actions button{font-size:6px;padding:0 5px}.top-actions .icon-button{width:25px}.speed-tape{left:8px}.altitude-tape{right:8px}.attitude{width:225px;height:180px}.weapon{gap:4px;padding:6px 4px}.weapon>span:not(.weapon-symbol){font-size:6px}.weapon-symbol{font-size:17px}.weapon strong{font-size:18px}.weapon small{font-size:3.5px}.touch-mode .right-console{width:96px}.touch-mode .left-console{width:96px}.dialog{padding:17px 14px}.primary-button{font-size:7px;padding:13px 10px}.text-button{font-size:6px}}

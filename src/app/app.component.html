@@ -1,0 +1,202 @@
+<main class="flight-deck" [class.touch-mode]="touch" [class.cockpit]="cockpit">
+  <canvas #world class="world" aria-label="Three-dimensional flight environment"></canvas>
+  <div class="vignette"></div>
+  <header class="topbar">
+    <button class="brand" (click)="openMenu()" aria-label="Open mission briefing">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 14 29 22 29 25 19 21 18 28 22 31 16 29 10 31 14 28 13 21 3 25 3 22 13 14Z"/></svg>
+      <span>AFTERBURNER<small>TACTICAL FLIGHT SIMULATOR</small></span>
+    </button>
+    <div class="mission-strip"><span class="live-dot"></span><span>{{ missionName }}<small>{{ combat.complete ? 'AIRSPACE SECURED' : activeScenario === 'training' ? 'FREE FLIGHT · RUNWAY 36 / 18' : 'OPERATION NORTHSTAR' }}</small></span></div>
+    <div class="top-actions">
+      <span class="timer">{{ elapsed }}<small>FLIGHT TIME</small></span>
+      <button class="icon-button music-button" (click)="audioPanel = !audioPanel" aria-label="Music settings" [attr.aria-expanded]="audioPanel" aria-controls="music-settings" [class.music-muted]="!music.enabled">♫</button>
+      <button (click)="toggleCamera()" [attr.aria-label]="cockpit ? 'Switch to chase view' : 'Switch to cockpit view'" title="Camera · V">{{ cockpit ? 'CHASE' : 'COCKPIT' }}</button>
+      <button class="icon-button" (click)="showHelp()" aria-label="Controls and flight manual">?</button>
+      <button class="icon-button expand-button" (click)="fullscreen()" aria-label="Toggle fullscreen">⛶</button>
+      <button class="icon-button" (click)="togglePause()" [attr.aria-label]="paused ? 'Resume' : 'Pause'">{{ paused ? '▶' : 'Ⅱ' }}</button>
+    </div>
+  </header>
+  @if (audioPanel) {
+    <section id="music-settings" class="music-settings panel" aria-label="Music and sound effect settings">
+      <div class="panel-heading"><span>NORTHSTAR / ORIGINAL SCORE</span><button (click)="audioPanel = false" aria-label="Close music settings">✕</button></div>
+      <p>Cinematic brass, strings &amp; field drums.</p>
+      <button class="music-toggle" (click)="toggleMusic()" [disabled]="!!audioError" [attr.aria-pressed]="music.enabled">{{ music.enabled ? 'MUTE MUSIC' : 'ENABLE MUSIC' }}</button>
+      <label for="music-volume">VOLUME <span>{{ music.volume * 100 | number:'1.0-0' }}%</span></label>
+      <input id="music-volume" aria-label="Music volume" type="range" min="0" max="100" step="1" [value]="music.volume * 100" (input)="setMusicVolume($event)">
+      @if (audioError) { <p role="status" class="danger-text">{{ audioError }}</p> }
+      <hr>
+      <p>ENGINE &amp; WARNING EFFECTS</p>
+      <button class="music-toggle" (click)="toggleEffects()" [disabled]="!!effectsError" [attr.aria-pressed]="sound.enabled">{{ sound.enabled ? 'MUTE EFFECTS' : 'ENABLE EFFECTS' }}</button>
+      <label for="effects-volume">EFFECTS VOLUME <span>{{ sound.volume * 100 | number:'1.0-0' }}%</span></label>
+      <input id="effects-volume" aria-label="Sound effects volume" type="range" min="0" max="100" step="1" [value]="sound.volume * 100" (input)="setEffectsVolume($event)">
+      @if (effectsError) { <p role="status" class="danger-text">{{ effectsError }}</p> }
+      <small>Muting effects also silences audible warnings. HUD warnings remain active.</small>
+      <small>Plays during flight. Pauses with the simulation.</small>
+    </section>
+  }
+
+  <div class="flight-info"><span class="tag">F / A — 27</span><span>VIPER 1–1</span><span class="muted">6-DOF / {{ cockpit ? 'HUD' : 'CHASE' }}</span><button class="autopilot-status" [class.engaged]="autopilot.active" (click)="autopilotPanel = !autopilotPanel; audioPanel = false" aria-label="Autopilot settings" aria-controls="autopilot-settings" [attr.aria-expanded]="autopilotPanel">AP {{ autopilot.status }}</button></div>
+  @if (autopilotPanel) {
+    <section id="autopilot-settings" class="autopilot-settings panel" aria-label="Autopilot controls">
+      <div class="panel-heading"><span>AUTOPILOT / {{ autopilot.mode | uppercase }}</span><button (click)="autopilotPanel = false" aria-label="Close autopilot settings">✕</button></div>
+      <p>Capture current flight targets or recover wings level. Manual input disconnects AP.</p>
+      <div class="autopilot-actions"><button (click)="engageAutopilot()" [disabled]="!running">CAPTURE &amp; HOLD</button><button (click)="engageAutopilot(true)" [disabled]="!running">WINGS LEVEL</button></div>
+      <button class="autopilot-stall" (click)="engageStallRecovery()" [disabled]="!running">STALL RECOVERY · T</button>
+      <div class="autopilot-actions autopilot-automatic">
+        <button (click)="engageAutomaticFlight(true)" [disabled]="!running || aircraft.phase === 'airborne'">AUTO TAKEOFF</button>
+        <button (click)="engageAutomaticFlight(false)" [disabled]="!running || aircraft.phase !== 'airborne'">RETURN &amp; LAND</button>
+      </div>
+      @if (autopilot.automaticFlight) {
+        <p role="status">RWY {{ autopilot.runway }} · {{ autopilot.mode === 'takeoff' ? 'DEPARTURE' : (autopilot.landingStage | uppercase) }}<br>Gear, flaps and thrust managed automatically. Manual flight or configuration input disconnects AP.</p>
+        @if (autopilot.mode === 'landing') { <button class="autopilot-stall" (click)="commandGoAround()" [disabled]="!running || autopilot.landingStage === 'rollout'">GO AROUND</button> }
+      }
+      @if (autopilot.mode === 'stall-recovery') { <p role="status">UNLOAD WING · LEVEL WINGS · FULL THRUST<br>Altitude loss expected. Monitor terrain. After 3 seconds of safe airflow and speed, AP switches to wings-level flight.</p> }
+      <label>HEADING (°)<input aria-label="Autopilot heading" type="number" min="0" max="359" step="1" [value]="autopilot.heading" [disabled]="autopilot.mode !== 'hold'" (change)="setAutopilotTarget($event, 'heading')"></label>
+      <label>ALTITUDE MSL (FT)<input aria-label="Autopilot altitude" type="number" min="1000" max="30000" step="100" [value]="autopilot.altitude" [disabled]="autopilot.mode !== 'hold'" (change)="setAutopilotTarget($event, 'altitude')"></label>
+      <label>AIRSPEED (KT)<input aria-label="Autopilot airspeed" type="number" min="220" max="550" step="10" [value]="autopilot.speed" [disabled]="!autopilot.active || autopilot.mode === 'stall-recovery' || autopilot.automaticFlight" (change)="setAutopilotTarget($event, 'speed')"></label>
+      <button class="autopilot-disconnect" (click)="disconnectAutopilot()" [disabled]="!autopilot.active">DISCONNECT · H</button>
+      <small>H: hold / disconnect · R: wings level · T: stall recovery<br>Hold / level: 500 ft minimum terrain clearance. Stall recovery: 100 ft minimum, altitude loss expected. Auto takeoff needs an aligned runway start. Return &amp; Land flies an extended approach to this airbase and goes around if unstable. Monitor all automatic flight; recovery is not guaranteed.</small>
+    </section>
+  }
+  <div class="environment-info"><span><i></i> VFR CONDITIONS</span><span>WIND CALM · VIS 25 KM</span></div>
+
+  <section class="hud" aria-label="Primary flight display">
+    <div class="heading-display"><span>HDG</span><strong>{{ heading }}<small>°</small></strong><div class="heading-scale">@for (offset of headingMarks; track offset) { <span>{{ headingMark(offset) }}</span> }</div><b>▴</b></div>
+    <div class="speed-tape"><span class="hud-label">AIRSPEED</span><div class="tape-values"><span>{{ knots + 40 | number:'1.0-0' }}</span><span>{{ knots + 20 | number:'1.0-0' }}</span><strong>{{ knots | number:'1.0-0' }}<small>KTS</small></strong><span>{{ knots - 20 > 0 ? (knots - 20 | number:'1.0-0') : '—' }}</span><span>{{ knots - 40 > 0 ? (knots - 40 | number:'1.0-0') : '—' }}</span></div><small>GS {{ knots | number:'1.0-0' }}</small></div>
+    <div class="altitude-tape"><span class="hud-label">ALTITUDE</span><div class="tape-values"><span>{{ feet + 200 | number:'1.0-0' }}</span><span>{{ feet + 100 | number:'1.0-0' }}</span><strong>{{ feet | number:'1.0-0' }}<small>FT</small></strong><span>{{ feet - 100 > 0 ? (feet - 100 | number:'1.0-0') : '—' }}</span><span>{{ feet - 200 > 0 ? (feet - 200 | number:'1.0-0') : '—' }}</span></div><small>R {{ aglFeet | number:'1.0-0' }}</small></div>
+    <svg class="attitude" viewBox="0 0 400 320" aria-label="Pitch ladder and bank indicator">
+      <defs><clipPath id="pitch-clip"><rect x="75" y="35" width="250" height="250"/></clipPath></defs>
+      <path class="bank-arc" d="M110 51 A130 130 0 0 1 290 51 M200 16V25 M135 34l5 8 M265 34l-5 8 M110 51l7 6 M290 51l-7 6"/>
+      <g [attr.transform]="'rotate(' + (-bankDegrees) + ' 200 160)'">
+        <path d="M194 31 200 23 206 31"/>
+        <g clip-path="url(#pitch-clip)">
+          <g [attr.transform]="'translate(0 ' + (pitchDegrees * 5) + ')'">
+            @for (mark of pitchMarks; track mark) {
+              <g [attr.transform]="'translate(0 ' + (-mark * 5) + ')'" [class.negative-pitch]="mark < 0">
+                <path [attr.d]="mark === 0 ? 'M70 160H173 M227 160H330' : 'M134 156V160H176 M224 160H266V156'"/>
+                @if (mark !== 0) { <text x="119" y="164">{{ mark }}</text><text x="276" y="164">{{ mark }}</text> }
+              </g>
+            }
+          </g>
+        </g>
+      </g>
+      <path class="boresight" d="M166 160H188L194 166H206L212 160H234 M200 147V153"/>
+      <path class="gun-cross" d="M200 119V126 M200 194V201 M159 160H166 M234 160H241"/>
+    </svg>
+    <div class="acquisition-circle" [class.locked]="combat.lock >= 1" [style.width.px]="(graphics?.acquisitionRadius ?? 0) * 2" [style.height.px]="(graphics?.acquisitionRadius ?? 0) * 2"></div>
+    @if (flightPath.visible) {
+      <div class="flight-path" [style.left.%]="flightPath.x" [style.top.%]="flightPath.y"><span></span></div>
+    }
+    <div class="g-readout">{{ aircraft.gLoad | number:'1.1-1' }} G<small>AOA {{ aircraft.alpha * 57.2958 | number:'1.0-0' }}°</small></div>
+    <div class="vs-readout">{{ vsi > 0 ? '+' : '' }}{{ vsi | number:'1.0-0' }}<small>FT / MIN</small></div>
+    @if (warning && started) { <div class="warning" role="status">{{ warning }}</div> }
+    @for (target of targets; track target.id) {
+      @if (target.visible) {
+        <button class="target-marker" [class.selected]="target.selected" [class.target-locked]="target.selected && combat.lock >= 1" [style.left.%]="target.x" [style.top.%]="target.y" (click)="combat.selected = target.id; combat.lock = 0" [attr.aria-label]="'Select bandit ' + target.id">
+          <span class="target-box"></span><small>BANDIT {{ target.id }} · {{ target.range / 1000 | number:'1.1-1' }}</small>
+        </button>
+      }
+    }
+  </section>
+
+  <aside class="left-console">
+    <div class="panel throttle-panel">
+      <div class="panel-heading"><span>ENGINE</span><span class="status-dot"></span></div>
+      <div class="throttle-value">{{ aircraft.controls.throttle * 100 | number:'1.0-0' }}<small>%</small><span [class.burning]="aircraft.controls.throttle > 0.88">{{ aircraft.controls.throttle > 0.88 ? 'A / B' : 'MIL' }}</span></div>
+      <input class="throttle-slider" aria-label="Engine throttle" type="range" min="0" max="100" step="1" [value]="aircraft.controls.throttle * 100" (input)="setThrottle($event)">
+      <div class="scale-labels"><span>IDLE</span><span>MAX</span></div>
+      <div class="fuel-line"><span>FUEL</span><strong>{{ aircraft.fuel | number:'1.0-0' }} <small>KG</small></strong></div>
+      <div class="fuel-bar"><span [style.width.%]="aircraft.fuel / 24"></span></div>
+    </div>
+    <div class="configuration">
+      <button [class.active]="aircraft.gear" (click)="toggleGear()"><span class="indicator"></span>GEAR<kbd>G</kbd><b>{{ aircraft.gear ? 'DN' : 'UP' }}</b></button>
+      <button [class.active]="aircraft.flaps" (click)="toggleFlaps()"><span class="indicator"></span>FLAPS<kbd>L</kbd><b>{{ aircraft.flaps ? 'DN' : 'UP' }}</b></button>
+      <button class="hold-button" (pointerdown)="brakeStart($event)" (pointerup)="brakeEnd()" (pointercancel)="brakeEnd()" (lostpointercapture)="brakeEnd()" [class.active]="aircraft.controls.brake"><span class="indicator"></span>BRAKE<kbd>B</kbd><b>HOLD</b></button>
+    </div>
+  </aside>
+
+  <aside class="right-console">
+    <div class="panel radar-panel">
+      <div class="panel-heading"><span>TACTICAL RADAR</span><span>6 KM</span></div>
+      <svg viewBox="0 0 100 100" role="img" aria-label="Radar: forward is up, six kilometer range">
+        <circle cx="50" cy="50" r="44"/><circle cx="50" cy="50" r="29"/><circle cx="50" cy="50" r="14"/>
+        <path d="M6 50H94 M50 6V94 M19 19l62 62 M19 81l62-62" class="radar-grid"/>
+        <path d="M50 50 22 16 A44 44 0 0 1 78 16Z" class="radar-cone"/>
+        <path d="M50 45 53 54 50 52 47 54Z" class="radar-player"/>
+        @for (contact of radar; track contact.id) {
+          <path [attr.transform]="'translate(' + contact.x + ' ' + contact.y + ')'" d="M0-3 3 0 0 3-3 0Z" class="radar-contact" [class.chosen]="contact.selected"/>
+        }
+        <text x="50" y="5">N / FWD</text>
+      </svg>
+      <div class="radar-footer"><span>{{ combat.alive.length }} HOSTILE{{ combat.alive.length === 1 ? '' : 'S' }}</span><span [class.danger-text]="combat.incoming > 0">{{ combat.incoming ? 'MSL INBOUND' : 'RWR CLEAR' }}</span></div>
+    </div>
+    <div class="panel target-panel">
+      <div class="panel-heading"><span>TARGET TRACK</span><button (click)="target()" aria-label="Cycle target">NEXT ↗</button></div>
+      <strong>{{ combat.target ? 'BANDIT ' + combat.target.id : 'NO CONTACT' }}<span>{{ targetRange }} <small>KM</small></span></strong>
+      <div class="lock-bar"><span [style.width.%]="combat.lock * 100"></span></div>
+      <div class="target-meta"><span>{{ combat.lock >= 1 ? '● LOCK ACQUIRED' : combat.lock > 0 ? 'ACQUIRING...' : 'SEARCH' }}</span><span>{{ targetBearing }}</span></div>
+    </div>
+  </aside>
+
+  <div class="notification" [class.show]="!!notification && started && !menu && !help" role="status"><span>{{ activeScenario === 'training' && combat.time >= combat.messageUntil ? 'FLIGHT SCHOOL / INSTRUCTOR' : 'COMMS' }}</span>{{ notification }}</div>
+  @if (combat.complete && !menu && !help && aircraft.phase !== 'crashed') {
+    <div class="mission-success">OBJECTIVE COMPLETE <span>+{{ score }} PTS · RTB {{ baseBearing }}° / {{ baseDistance }} KM</span></div>
+  }
+  @if (aircraft.phase === 'landed' && !menu && !help) {
+    <div class="landing-report">TOUCHDOWN {{ aircraft.touchdownRate | number:'1.1-1' }} M/S · HOLD BRAKE TO STOP</div>
+  }
+
+  <div class="touch-flight-controls">
+    <div class="stick-group"><span>FLIGHT STICK <small>PULL BACK TO CLIMB</small></span><div class="flight-stick" aria-label="Touch flight stick: pull down for pitch up, drag sideways to roll" (pointerdown)="stickStart($event)" (pointermove)="stickMove($event)" (pointerup)="stickEnd($event)" (pointercancel)="stickEnd($event)" (lostpointercapture)="stickEnd($event)"><div class="stick-axis"></div><div class="stick-knob" [style.transform]="'translate(' + (stickX * 42) + 'px, ' + (stickY * 42) + 'px)'"></div></div></div>
+    <div class="touch-right-controls"><button class="touch-target" (click)="target()" aria-label="Cycle touch target">NEXT TARGET ↻</button><div class="rudder-buttons"><button aria-label="Left rudder" (pointerdown)="rudderStart($event, -1)" (pointerup)="rudderEnd($event)" (pointercancel)="rudderEnd($event)" (lostpointercapture)="rudderEnd($event)">◁</button><span>YAW</span><button aria-label="Right rudder" (pointerdown)="rudderStart($event, 1)" (pointerup)="rudderEnd($event)" (pointercancel)="rudderEnd($event)" (lostpointercapture)="rudderEnd($event)">▷</button></div></div>
+  </div>
+
+  <footer class="bottom-bar">
+    <div class="airframe-status"><span class="airframe-icon">◇</span><div><span>AIRFRAME</span><strong [class.danger-text]="aircraft.health < 40">{{ aircraft.health | number:'1.0-0' }}<small>%</small></strong></div><div class="health-segments"><span [style.height.%]="aircraft.health"></span></div><div class="phase-tag">{{ aircraft.phase }}</div></div>
+    <div class="weapons">
+      <button class="weapon missile-button" (click)="launch()" [class.weapon-ready]="combat.lock >= 1" [disabled]="!running || !combat.missiles"><span class="weapon-symbol">↟</span><span>FOX TWO<small>{{ combat.lock >= 1 ? 'LOCKED · LAUNCH' : 'HEAT-SEEKING' }}</small></span><strong>{{ combat.missiles.toString().padStart(2, '0') }}</strong><kbd>M</kbd></button>
+      <button class="weapon hold-button" (pointerdown)="gunStart($event)" (pointerup)="gunEnd($event)" (pointercancel)="gunEnd($event)" (lostpointercapture)="gunEnd($event)" [disabled]="!running || !combat.rounds"><span class="weapon-symbol">⌖</span><span>GUN<small>20 MM · HOLD</small></span><strong>{{ combat.rounds }}</strong><kbd>SPACE</kbd></button>
+      <button class="weapon flare-button" (click)="flare()" [disabled]="!running || !combat.flares"><span class="weapon-symbol">⋔</span><span>FLARES<small>COUNTERMEASURE</small></span><strong>{{ combat.flares.toString().padStart(2, '0') }}</strong><kbd>F</kbd></button>
+    </div>
+    <div class="kill-counter"><strong>{{ combat.kills.toString().padStart(2, '0') }}</strong><span>CONFIRMED<small>KILLS</small></span></div>
+  </footer>
+  <div class="keyboard-hint"><span><kbd>W A S D</kbd> / <kbd>↑ ↓ ← →</kbd> FLY</span><span><kbd>Q E</kbd> RUDDER</span><span><kbd>SHIFT / CTRL</kbd> THROTTLE</span><span><kbd>TAB</kbd> TARGET</span><button (click)="touch = !touch">{{ touch ? 'HIDE' : 'SHOW' }} TOUCH CONTROLS</button></div>
+
+  @if (menu || help || paused || error || aircraft.phase === 'crashed') {
+    <div class="modal-backdrop">
+      @if (error) {
+        <section class="dialog error-dialog" role="alertdialog" aria-modal="true" aria-labelledby="error-title"><span class="eyebrow">SYSTEM STATUS</span><h1 id="error-title">Graphics unavailable</h1><p>{{ error }}</p><button class="primary-button" (click)="reload()">REOPEN FLIGHT SYSTEMS</button></section>
+      } @else if (help) {
+        <section class="dialog manual" role="dialog" aria-modal="true" aria-labelledby="manual-title">
+          <div class="dialog-top"><span class="eyebrow">PILOT HANDBOOK / 01</span><button (click)="help = false" aria-label="Close flight manual">✕</button></div>
+          <h1 id="manual-title">Know your aircraft.</h1><p class="intro">A hands-on flight model. Optional autopilot, no invisible rails.</p>
+          <div class="manual-grid">
+            <div><h3>01 / FLIGHT CONTROLS</h3><p><kbd>↓ / S</kbd> Pull up · <kbd>↑ / W</kbd> Push nose down<br><kbd>← → / A D</kbd> Roll · <kbd>Q E</kbd> Rudder<br><kbd>Shift</kbd> Add thrust · <kbd>Ctrl</kbd> Reduce thrust<br><kbd>G</kbd> Gear · <kbd>L</kbd> Flaps · <kbd>B</kbd> Hold brakes<br><kbd>V</kbd> Camera · <kbd>P / Esc</kbd> Pause</p><p>Touch: drag the stick down to pitch up; sideways to bank. Use the throttle slider, yaw pedals, and weapon buttons. All controls support simultaneous touches.</p><p><kbd>H</kbd> Capture heading / altitude / speed, or disconnect AP. <kbd>R</kbd> Wings level and zero vertical speed. <kbd>T</kbd> Stall recovery: unload wing, level wings, full thrust, then wings-level hold after airflow and speed recover. An engaged AP enters stall recovery automatically. Manual flight input disconnects AP; weapons do not. AP settings beside the callsign also provide Auto Takeoff, Return &amp; Land, and Go Around. Supervise all automatic modes.</p></div>
+            <div><h3>02 / ENGAGEMENT</h3><p><kbd>Tab</kbd> Cycle bandits. Keep the selected target within 9° of the nose and under 6.5 km for 1.8 s to lock. <kbd>M</kbd> Launch a heat-seeker. <kbd>Space</kbd> Hold the 20 mm cannon; effective inside 1.5 km. Lead a turning target.</p><p><kbd>F</kbd> Release two flares. When a missile is within 1.6 km, flares can decoy it. Turn hard to separate from the flare cloud. Countermeasures are limited.</p></div>
+            <div><h3>03 / TAKEOFF & RECOVERY</h3><p>Runway 36 points north (000°), 18 south (180°). From the runway: brakes off, full thrust, ease back at 150–170 kt. Retract gear and flaps after a positive climb. Or select Auto Takeoff from an aligned runway start: AP manages rotation, configuration and climb, then captures hold.</p><p>Return &amp; Land flies an extended circuit, selects runway 36/18, aligns, descends on a 4.5° terrain-clearing approach at 175 kt, configures gear/flaps, flares and brakes. An unstable approach triggers a go-around; the AP panel also has a Go Around button. Manual gear/flap changes disconnect these automatic modes.</p><p>For manual landing, approach at 160–190 kt with gear/flaps down and ensure terrain clearance. Touch down inside the 76 × 3200 m runway, under 5.5 m/s sink, bank under 10°, nose between −4° and +17°. Brake after touchdown. Automatic landing does not guarantee safety under hostile damage, fuel exhaustion or extreme initial conditions.</p></div>
+            <div><h3>04 / READ THE SKY</h3><p>The pitch ladder and bank arc show attitude. The small winged circle is your velocity vector, not your nose. Speed is true airspeed in knots; altitude is MSL feet; R is height above terrain. Radar is aircraft-relative, nose up, 6 km radius.</p><p>Pulling high angle of attack stalls the wing. Lower the nose and add thrust to recover. Banking redirects lift: coordinate with rudder and back pressure. Fuel, drag, G loading, and airframe damage matter.</p></div>
+          </div>
+          <div class="manual-footer"><span>SIMPLIFIED FIGHTER DYNAMICS · NOT FOR REAL-WORLD TRAINING</span><button class="primary-button" (click)="help = false">UNDERSTOOD</button></div>
+        </section>
+      } @else if (menu) {
+        <section class="dialog briefing" role="dialog" aria-modal="true" aria-labelledby="briefing-title">
+          <div class="dialog-top"><span class="eyebrow"><span class="live-dot"></span> FLIGHT OPERATIONS / NORTHSTAR</span><span class="offline-label">OFFLINE READY</span></div>
+          <div class="briefing-title"><div><h1 id="briefing-title">Own the <em>sky.</em></h1><p>One pilot. Open airspace. No second chances.</p></div><svg class="briefing-jet" viewBox="0 0 160 160" aria-hidden="true"><path d="M80 5 88 64 144 106 144 118 91 99 87 133 105 149 80 143 55 149 73 133 69 99 16 118 16 106 72 64Z"/><path d="M80 25V140 M24 110 75 84 M136 110 85 84"/></svg></div>
+          <div class="section-label"><span>SELECT YOUR SORTIE</span><span>F/A–27 · MULTIROLE FIGHTER</span></div>
+          <div class="scenario-grid">
+            <button class="scenario-card" [class.chosen]="scenario === 'training'" (click)="scenario = 'training'"><span class="card-number">01 <small>ORIENTATION</small></span><span class="card-symbol">◎</span><strong>Flight school</strong><p>Learn the aircraft. Fly the pattern. Make it home.</p><span class="card-footer">NO HOSTILES <b>FREE FLIGHT ↗</b></span></button>
+            <button class="scenario-card" [class.chosen]="scenario === 'intercept'" (click)="scenario = 'intercept'"><span class="card-number">02 <small>STANDARD</small></span><span class="card-symbol">⌖</span><strong>Coastal intercept</strong><p>Three bandits inbound. Intercept and secure the airspace.</p><span class="card-footer">3 HOSTILES <b>AIR TO AIR ↗</b></span></button>
+            <button class="scenario-card" [class.chosen]="scenario === 'furball'" (click)="scenario = 'furball'"><span class="card-number">03 <small>HIGH THREAT</small></span><span class="card-symbol">⋔</span><strong>Overwhelming odds</strong><p>Five agile adversaries. Watch your six. Stay alive.</p><span class="card-footer">5 HOSTILES <b>DOGFIGHT ↗</b></span></button>
+          </div>
+          <div class="sortie-options"><label><input type="checkbox" [checked]="runwayStart" (change)="runwayStart = !runwayStart"><span>Start on runway<small>{{ runwayStart ? 'Cold roll · gear and flaps down' : 'Airborne · 3,600 ft · 320 kt' }}</small></span></label><span class="loadout">LOADOUT <b>6 × IR MSL</b><b>640 × 20 MM</b><b>24 × FLARE</b></span></div>
+          <div class="briefing-footer"><button class="text-button" (click)="showHelp()">FLIGHT MANUAL <span>↗</span></button><span class="best-score">PERSONAL BEST <b>{{ best | number }}</b></span><div class="launch-actions">@if (started) { <button (click)="resume()">RESUME</button> }<button class="primary-button" (click)="start()">LAUNCH SORTIE <span>→</span></button></div></div>
+          <p class="briefing-note">PROCEDURAL WORLD · SIX DEGREES OF FREEDOM · DESKTOP + TOUCH · NO NETWORK REQUIRED</p>
+        </section>
+      } @else if (aircraft.phase === 'crashed') {
+        <section class="dialog result" role="dialog" aria-modal="true" aria-labelledby="result-title"><span class="eyebrow danger-text">SORTIE ENDED</span><h1 id="result-title">Aircraft lost.</h1><p>{{ aircraft.crashReason }}. Review your approach and fly again.</p><div class="result-stats"><div><strong>{{ combat.kills }}</strong><span>CONFIRMED KILLS</span></div><div><strong>{{ elapsed }}</strong><span>FLIGHT TIME</span></div><div><strong>{{ score }}</strong><span>SCORE</span></div></div><div class="result-actions"><button (click)="openMenu()">MISSION SELECT</button><button class="primary-button" (click)="start()">FLY AGAIN →</button></div></section>
+      } @else {
+        <section class="dialog pause-dialog" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="eyebrow">FLIGHT ON HOLD</span><h1 id="pause-title">Take a breath.</h1><p>Simulation paused. Your aircraft is right where you left it.</p><button class="primary-button" (click)="resume()">RESUME FLIGHT →</button><button (click)="openMenu()">MISSION SELECT</button><button (click)="showHelp()">FLIGHT MANUAL</button></section>
+      }
+    </div>
+  }
+</main>
