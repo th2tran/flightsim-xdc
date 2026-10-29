@@ -48,6 +48,28 @@ export function crashSamples(sampleRate: number): Float32Array {
   return samples;
 }
 
+export function impactSamples(sampleRate: number): Float32Array {
+  const duration = 1.8;
+  const samples = new Float32Array(Math.round(sampleRate * duration));
+  let seed = 1207, low = 0, mid = 0, phase = 0, ringPhase = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const time = i / sampleRate;
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const noise = seed / 0x80000000 - 1;
+    low += (noise - low) * (1 - Math.exp(-2 * Math.PI * 180 / sampleRate));
+    mid += (noise - mid) * (1 - Math.exp(-2 * Math.PI * 1500 / sampleRate));
+    phase += 2 * Math.PI * (30 + 58 * Math.exp(-time * 3.2)) / sampleRate;
+    ringPhase += 2 * Math.PI * (210 - 100 * Math.min(1, time * 1.4)) / sampleRate;
+    const crack = noise * 0.32 * Math.exp(-time * 34);
+    const pressure = Math.sin(phase) * 0.46 * Math.exp(-time * 2.4);
+    const debris = (low * 0.95 + mid * 0.25) * Math.exp(-time * 2.8);
+    const ring = Math.sin(ringPhase) * 0.14 * Math.exp(-time * 4.5);
+    const envelope = Math.min(1, time / 0.002) * clamp((duration - time) / 0.18, 0, 1);
+    samples[i] = envelope * (crack + pressure + debris + ring);
+  }
+  return samples;
+}
+
 export function gunSamples(sampleRate: number): Float32Array {
   const samples = new Float32Array(Math.round(sampleRate * 0.09));
   let seed = 193, low = 0, phase = 0;
@@ -110,6 +132,7 @@ export class FlightSound {
   private crashBuffer?: AudioBuffer;
   private gunBuffer?: AudioBuffer;
   private missileBuffer?: AudioBuffer;
+  private impactBuffer?: AudioBuffer;
   private readonly weaponSources = new Set<AudioBufferSourceNode>();
   private readonly alarms = new Map<FlightWarning, AudioBuffer>();
   private warning: FlightWarning | null = null;
@@ -208,15 +231,20 @@ export class FlightSound {
     this.playWeapon('missile');
   }
 
-  private playWeapon(kind: 'gun' | 'missile'): void {
+  playImpact(): void {
+    this.playWeapon('impact');
+  }
+
+  private playWeapon(kind: 'gun' | 'missile' | 'impact'): void {
     if (!this.context || !this.master || !this.desired || !this.enabled || this.failed || this.disposed || this.crash) return;
-    let buffer = kind === 'gun' ? this.gunBuffer : this.missileBuffer;
+    let buffer = kind === 'gun' ? this.gunBuffer : kind === 'missile' ? this.missileBuffer : this.impactBuffer;
     if (!buffer) {
-      const samples = (kind === 'gun' ? gunSamples : missileSamples)(this.context.sampleRate);
+      const samples = (kind === 'gun' ? gunSamples : kind === 'missile' ? missileSamples : impactSamples)(this.context.sampleRate);
       buffer = this.context.createBuffer(1, samples.length, this.context.sampleRate);
       buffer.getChannelData(0).set(samples);
       if (kind === 'gun') this.gunBuffer = buffer;
-      else this.missileBuffer = buffer;
+      else if (kind === 'missile') this.missileBuffer = buffer;
+      else this.impactBuffer = buffer;
     }
     const source = this.context.createBufferSource();
     source.buffer = buffer;
@@ -323,6 +351,7 @@ export class FlightSound {
     this.crashBuffer = undefined;
     this.gunBuffer = undefined;
     this.missileBuffer = undefined;
+    this.impactBuffer = undefined;
     if (this.context && this.context.state !== 'closed') {
       void this.context.close().catch(error => console.warn('Unable to close effects audio context', error));
     }

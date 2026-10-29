@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Aircraft } from './flight';
-import { alarmSamples, crashSamples, gunSamples, missileSamples, engineMix, FlightSound } from './sound';
+import { alarmSamples, crashSamples, gunSamples, impactSamples, missileSamples, engineMix, FlightSound } from './sound';
 import { flightWarning, FlightWarning } from './warnings';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -34,6 +34,18 @@ describe('engine and warning mapping', () => {
     expect(peak).toBeGreaterThan(0.3);
     expect(peak).toBeLessThan(1);
     expect(rms(samples.slice(0, 11025))).toBeGreaterThan(rms(samples.slice(-11025)) * 10);
+    expect(samples[0]).toBe(0);
+    expect(Math.abs(samples[samples.length - 1])).toBeLessThan(0.0001);
+  });
+  it('generates a loud, layered missile blast with a sustained low-frequency tail', () => {
+    const samples = impactSamples(22050);
+    expect(samples.length).toBe(39690);
+    let peak = 0;
+    for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
+    const rms = (data: Float32Array) => Math.sqrt(data.reduce((sum, n) => sum + n * n, 0) / data.length);
+    expect(peak).toBeGreaterThan(0.3);
+    expect(peak).toBeLessThan(1);
+    expect(rms(samples.slice(0, 11025))).toBeGreaterThan(rms(samples.slice(-11025)) * 5);
     expect(samples[0]).toBe(0);
     expect(Math.abs(samples[samples.length - 1])).toBeLessThan(0.0001);
   });
@@ -127,6 +139,24 @@ function audioHarness() {
 }
 
 describe('sound effects lifecycle', () => {
+  it('plays missile impact blasts, reuses their buffer, and cancels them on pause', async () => {
+    const { sources } = audioHarness();
+    const sound = new FlightSound(vi.fn());
+    sound.activate();
+    sound.setPlaying(true);
+    await Promise.resolve();
+    const firstImpact = sources.length;
+    sound.playImpact();
+    sound.playImpact();
+    expect(sources).toHaveLength(firstImpact + 2);
+    expect(sources[firstImpact].buffer).toBe(sources[firstImpact + 1].buffer);
+    expect(sources[firstImpact].loop).toBe(false);
+    sound.setPlaying(false);
+    expect(sources[firstImpact].stop).toHaveBeenCalledOnce();
+    expect(sources[firstImpact + 1].stop).toHaveBeenCalledOnce();
+    sound.dispose();
+  });
+
   it('reuses missile audio and cancels launches on pause and crash', async () => {
     const { sources } = audioHarness();
     const sound = new FlightSound(vi.fn());

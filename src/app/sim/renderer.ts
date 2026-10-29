@@ -1,11 +1,29 @@
 import * as THREE from 'three';
 import { Aircraft, clamp, terrainHeight } from './flight';
-import { Combat } from './combat';
+import { Combat, MissileStrike } from './combat';
 import { AIRFRAMES } from './airframes';
 import { makeJet } from './jet-model';
 export { makeJet } from './jet-model';
 
 export interface ScreenTarget { id: number; x: number; y: number; visible: boolean; selected: boolean; range: number; }
+
+interface StrikeVisual {
+  group: THREE.Group;
+  scorch: THREE.Mesh;
+  flash: THREE.Mesh;
+  flame: THREE.Mesh;
+  smoke: THREE.Mesh;
+  materials: THREE.MeshBasicMaterial[];
+}
+
+interface ExplosionVisual {
+  group: THREE.Group;
+  core: THREE.Mesh;
+  fireball: THREE.Mesh;
+  shockwave: THREE.Mesh;
+  smoke: THREE.Mesh;
+  materials: THREE.MeshBasicMaterial[];
+}
 
 function material(color: number): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.78, metalness: 0.20 });
@@ -20,8 +38,15 @@ export class FlightRenderer {
   cockpit = false;
   private readonly enemyMeshes = new Map<number, THREE.Group>();
   private readonly effectMeshes = new Map<number, THREE.Mesh>();
+  private readonly strikeVisuals = new Map<number, StrikeVisual>();
+  private readonly explosionVisuals = new Map<number, ExplosionVisual>();
   private readonly projectileGeometry = new THREE.SphereGeometry(1, 5, 4);
   private readonly explosionGeometry = new THREE.IcosahedronGeometry(1, 1);
+  private readonly blastGeometry = new THREE.SphereGeometry(1, 14, 10);
+  private readonly shockwaveGeometry = new THREE.TorusGeometry(1, 0.08, 6, 32);
+  private readonly scorchGeometry = new THREE.CircleGeometry(1, 16);
+  private readonly strikeGeometry = new THREE.IcosahedronGeometry(1, 1);
+  private readonly flameGeometry = new THREE.ConeGeometry(1, 1, 8);
   private readonly effectMaterials: Record<string, THREE.MeshBasicMaterial> = {
     missile: new THREE.MeshBasicMaterial({ color: 0xffdc9a }),
     hostile: new THREE.MeshBasicMaterial({ color: 0xff7254 }),
@@ -159,6 +184,87 @@ export class FlightRenderer {
     return this.canvas.clientHeight * Math.tan(9 * Math.PI / 180) / (2 * Math.tan(this.camera.fov * Math.PI / 360));
   }
 
+  private createStrikeVisual(): StrikeVisual {
+    const makeMaterial = (color: number, opacity: number): THREE.MeshBasicMaterial =>
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
+    const materials = [
+      makeMaterial(0x171613, 0.55),
+      makeMaterial(0xfff0a0, 0.9),
+      makeMaterial(0xff641c, 0.9),
+      makeMaterial(0x34302b, 0.25),
+    ];
+    const group = new THREE.Group();
+    const scorch = new THREE.Mesh(this.scorchGeometry, materials[0]);
+    const flash = new THREE.Mesh(this.strikeGeometry, materials[1]);
+    const flame = new THREE.Mesh(this.flameGeometry, materials[2]);
+    const smoke = new THREE.Mesh(this.strikeGeometry, materials[3]);
+    group.add(scorch, flash, flame, smoke);
+    this.scene.add(group);
+    return { group, scorch, flash, flame, smoke, materials };
+  }
+
+  private createExplosionVisual(): ExplosionVisual {
+    const makeMaterial = (color: number, opacity: number): THREE.MeshBasicMaterial =>
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
+    const materials = [
+      makeMaterial(0xfff3c4, 0.95),
+      makeMaterial(0xff8129, 0.9),
+      makeMaterial(0xffdca0, 0.75),
+      makeMaterial(0x302a27, 0.4),
+    ];
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(this.blastGeometry, materials[0]);
+    const fireball = new THREE.Mesh(this.explosionGeometry, materials[1]);
+    const shockwave = new THREE.Mesh(this.shockwaveGeometry, materials[2]);
+    const smoke = new THREE.Mesh(this.blastGeometry, materials[3]);
+    group.add(shockwave, fireball, core, smoke);
+    this.scene.add(group);
+    return { group, core, fireball, shockwave, smoke, materials };
+  }
+
+  private renderExplosion(visual: ExplosionVisual, effect: Combat['explosions'][number]): void {
+    const age = clamp(1 - effect.life / effect.duration, 0, 1);
+    const power = effect.intensity;
+    visual.group.position.copy(effect.position);
+    visual.core.scale.setScalar((3 + age * 19) * power);
+    visual.materials[0].opacity = 0.98 * (1 - age) ** 2;
+    visual.fireball.scale.setScalar((7 + age * 48) * power);
+    visual.materials[1].opacity = 0.9 * (1 - age) ** 1.35;
+    visual.shockwave.scale.setScalar((5 + age * 110) * power);
+    visual.materials[2].opacity = 0.8 * Math.sin(Math.PI * age) ** 0.7;
+    visual.smoke.scale.set(8 + age * 34, 7 + age * 28, 8 + age * 34).multiplyScalar(power);
+    visual.smoke.position.y = age * 12;
+    visual.materials[3].opacity = 0.48 * clamp((age - 0.12) * 2.4, 0, 1) * (1 - age) ** 0.6;
+  }
+
+  private renderMissileStrike(visual: StrikeVisual, strike: MissileStrike, position: THREE.Vector3, attitude: THREE.Quaternion): void {
+    const age = clamp(1 - strike.life / strike.duration, 0, 1);
+    const normal = strike.localNormal;
+    visual.group.position.copy(strike.localPosition).applyQuaternion(attitude).add(position);
+    visual.group.quaternion.copy(attitude);
+
+    visual.scorch.position.copy(normal).multiplyScalar(0.12);
+    visual.scorch.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+    visual.scorch.scale.setScalar(0.8 + age * 1.5);
+    visual.materials[0].opacity = 0.55 * (1 - age);
+
+    visual.flash.position.copy(normal).multiplyScalar(0.35);
+    visual.flash.scale.setScalar(1.2 + age * 7);
+    visual.materials[1].opacity = age < 0.2 ? 0.9 * (1 - age / 0.2) : 0;
+    visual.flash.visible = visual.materials[1].opacity > 0.01;
+
+    visual.flame.position.copy(normal).multiplyScalar(1.1 + age);
+    visual.flame.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+    visual.flame.scale.set(1.1 + age, 1.8 + age * 2.8, 1.1 + age);
+    visual.materials[2].opacity = 0.9 * (1 - age) ** 1.3;
+
+    visual.smoke.position.copy(normal).multiplyScalar(2 + age * 2)
+      .addScaledVector(strike.localTrail, age * 8);
+    visual.smoke.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strike.localTrail);
+    visual.smoke.scale.set(0.7 + age * 1.8, 1 + age * 3.2, 0.7 + age * 1.8);
+    visual.materials[3].opacity = 0.3 * Math.sin(Math.PI * age);
+  }
+
   draw(aircraft: Aircraft, combat: Combat): ScreenTarget[] {
     if (this.playerAirframe !== aircraft.airframe) {
       this.scene.remove(this.player);
@@ -187,8 +293,12 @@ export class FlightRenderer {
     this.camera.position.copy(this.cameraPosition);
     this.camera.quaternion.copy(aircraft.attitude);
     const active = new Set<number>();
+    const burningBogeys = new Set<number>();
+    for (const strike of combat.strikes) {
+      if (typeof strike.target === 'number') burningBogeys.add(strike.target);
+    }
     for (const bogey of combat.bogeys) {
-      if (bogey.health <= 0) continue;
+      if (bogey.health <= 0 && !burningBogeys.has(bogey.id)) continue;
       active.add(bogey.id);
       let jet = this.enemyMeshes.get(bogey.id);
       if (!jet) {
@@ -203,24 +313,60 @@ export class FlightRenderer {
       if (!active.has(id)) { this.scene.remove(jet); this.disposeObject(jet); this.enemyMeshes.delete(id); }
     }
     active.clear();
-    const effects = [
-      ...combat.projectiles.map(effect => ({ effect, kind: effect.kind })),
-      ...combat.explosions.map(effect => ({ effect, kind: 'explosion' })),
-    ];
+    const effects = combat.projectiles.map(effect => ({ effect, kind: effect.kind }));
     for (const { effect, kind } of effects) {
       active.add(effect.id);
       let mesh = this.effectMeshes.get(effect.id);
       if (!mesh) {
-        mesh = new THREE.Mesh(kind === 'explosion' ? this.explosionGeometry : this.projectileGeometry, this.effectMaterials[kind]);
+        mesh = new THREE.Mesh(this.projectileGeometry, this.effectMaterials[kind]);
         this.effectMeshes.set(effect.id, mesh);
         this.scene.add(mesh);
       }
       mesh.position.copy(effect.position);
-      const size = kind === 'explosion' ? Math.max(1, (1.6 - effect.life) * 35) : kind === 'bullet' ? 1.1 : kind === 'flare' ? 2.6 : 2.0;
+      const size = kind === 'bullet' ? 1.1 : kind === 'flare' ? 2.6 : 2.0;
       mesh.scale.setScalar(size);
     }
     for (const [id, mesh] of this.effectMeshes) {
       if (!active.has(id)) { this.scene.remove(mesh); this.effectMeshes.delete(id); }
+    }
+    const activeStrikes = new Set<number>();
+    for (const strike of combat.strikes) {
+      const bogey = strike.target === 'player' ? undefined : combat.bogeys.find(item => item.id === strike.target);
+      if (strike.target !== 'player' && !bogey) continue;
+      const position = strike.target === 'player' ? aircraft.position : bogey!.position;
+      const attitude = strike.target === 'player' ? aircraft.attitude
+        : new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), bogey!.forward);
+      activeStrikes.add(strike.id);
+      let visual = this.strikeVisuals.get(strike.id);
+      if (!visual) {
+        visual = this.createStrikeVisual();
+        this.strikeVisuals.set(strike.id, visual);
+      }
+      this.renderMissileStrike(visual, strike, position, attitude);
+    }
+    for (const [id, visual] of this.strikeVisuals) {
+      if (!activeStrikes.has(id)) {
+        this.scene.remove(visual.group);
+        visual.materials.forEach(effectMaterial => effectMaterial.dispose());
+        this.strikeVisuals.delete(id);
+      }
+    }
+    const activeExplosions = new Set<number>();
+    for (const explosion of combat.explosions) {
+      activeExplosions.add(explosion.id);
+      let visual = this.explosionVisuals.get(explosion.id);
+      if (!visual) {
+        visual = this.createExplosionVisual();
+        this.explosionVisuals.set(explosion.id, visual);
+      }
+      this.renderExplosion(visual, explosion);
+    }
+    for (const [id, visual] of this.explosionVisuals) {
+      if (!activeExplosions.has(id)) {
+        this.scene.remove(visual.group);
+        visual.materials.forEach(effectMaterial => effectMaterial.dispose());
+        this.explosionVisuals.delete(id);
+      }
     }
     this.renderer.render(this.scene, this.camera);
     return combat.alive.map(bogey => {
@@ -258,6 +404,13 @@ export class FlightRenderer {
     this.disposeObject(this.scene);
     this.projectileGeometry.dispose();
     this.explosionGeometry.dispose();
+    this.blastGeometry.dispose();
+    this.shockwaveGeometry.dispose();
+    this.scorchGeometry.dispose();
+    this.strikeGeometry.dispose();
+    this.flameGeometry.dispose();
+    for (const visual of this.strikeVisuals.values()) visual.materials.forEach(effectMaterial => effectMaterial.dispose());
+    for (const visual of this.explosionVisuals.values()) visual.materials.forEach(effectMaterial => effectMaterial.dispose());
     Object.values(this.effectMaterials).forEach(mat => mat.dispose());
     this.renderer.dispose();
   }

@@ -64,6 +64,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private last = 0;
   private accumulator = 0;
   private lastUi = 0;
+  private lastCombatExplosionId = 0;
   private keys = new Set<string>();
   private stickPointer: number | null = null;
   private stickElement: HTMLElement | null = null;
@@ -291,6 +292,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         this.aircraft.step(STEP);
         const roundsBefore = this.combat.rounds;
         this.combat.step(STEP, this.aircraft);
+        for (const explosion of this.combat.explosions) {
+          if (explosion.id <= this.lastCombatExplosionId) continue;
+          this.lastCombatExplosionId = explosion.id;
+          if (explosion.kind === 'missile') this.sound.playImpact();
+        }
         if (this.combat.rounds < roundsBefore) this.sound.playGun();
         if (this.activeScenario === 'training') this.instructor.update(this.aircraft, this.autopilot, STEP);
         this.accumulator -= STEP;
@@ -302,6 +308,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         }
       }
     } else this.accumulator = 0;
+    if (this.aircraft.phase === 'crashed' && dt > 0) this.combat.step(dt, this.aircraft);
     this.sound.setPlaying(this.running);
     this.sound.update(this.aircraft, this.combat.incoming);
     if (this.graphics && !this.error) {

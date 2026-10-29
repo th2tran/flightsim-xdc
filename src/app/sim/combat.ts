@@ -1,4 +1,4 @@
-import { Vector3 } from 'three';
+import { Quaternion, Vector3 } from 'three';
 import { Aircraft, clamp, Scenario, terrainHeight } from './flight';
 
 export interface Bogey {
@@ -18,18 +18,43 @@ export interface Projectile {
   target: number;
   decoyed: boolean;
 }
-export interface Explosion { id: number; position: Vector3; life: number; }
+export interface Explosion {
+  id: number;
+  position: Vector3;
+  life: number;
+  duration: number;
+  intensity: number;
+  kind: 'missile' | 'destroyed';
+}
+export interface MissileStrike {
+  id: number;
+  target: number | 'player';
+  localPosition: Vector3;
+  localNormal: Vector3;
+  localTrail: Vector3;
+  life: number;
+  duration: number;
+}
 
-export function segmentDistance(point: Vector3, start: Vector3, end: Vector3): number {
+const STRIKE_DURATION = 0.9;
+const AIRFRAME_RADII = new Vector3(6, 1.5, 10);
+const MISSILE_BLAST_DURATION = 2.2;
+
+export function segmentClosestPoint(point: Vector3, start: Vector3, end: Vector3): Vector3 {
   const direction = end.clone().sub(start);
   const fraction = clamp(point.clone().sub(start).dot(direction) / Math.max(0.0001, direction.lengthSq()), 0, 1);
-  return start.clone().addScaledVector(direction, fraction).distanceTo(point);
+  return start.clone().addScaledVector(direction, fraction);
+}
+
+export function segmentDistance(point: Vector3, start: Vector3, end: Vector3): number {
+  return point.distanceTo(segmentClosestPoint(point, start, end));
 }
 
 export class Combat {
   bogeys: Bogey[] = [];
   projectiles: Projectile[] = [];
   explosions: Explosion[] = [];
+  strikes: MissileStrike[] = [];
   selected = 0;
   lock = 0;
   missiles = 6;
@@ -51,6 +76,7 @@ export class Combat {
     this.bogeys = [];
     this.projectiles = [];
     this.explosions = [];
+    this.strikes = [];
     this.selected = 0;
     this.lock = 0;
     this.missiles = 6;
@@ -110,15 +136,64 @@ export class Combat {
     this.projectiles.push({ id: this.nextId++, kind, position, velocity, life, target, decoyed: false });
   }
 
-  private hit(bogey: Bogey, damage: number): void {
+  private hit(bogey: Bogey, damage: number, missileImpact = false): void {
     if (bogey.health <= 0) return;
     bogey.health -= damage;
     if (bogey.health <= 0) {
       this.kills++;
-      this.explosions.push({ id: this.nextId++, position: bogey.position.clone(), life: 1.5 });
+      if (!missileImpact) {
+        this.explosions.push({
+          id: this.nextId++, position: bogey.position.clone(), life: 1.5, duration: 1.5, intensity: 1.15, kind: 'destroyed',
+        });
+      }
       this.notify(this.complete ? 'Airspace clear. Return to base.' : 'Splash one. Target destroyed.', 5);
       if (this.selected === bogey.id) this.cycleTarget();
     }
+  }
+
+  private missileStrike(
+    target: number | 'player',
+    targetPosition: Vector3,
+    attitude: Quaternion,
+    impactPosition: Vector3,
+    projectileVelocity: Vector3,
+    targetVelocity: Vector3,
+  ): void {
+    const inverse = attitude.clone().invert();
+    const offset = impactPosition.clone().sub(targetPosition).applyQuaternion(inverse);
+    const localNormal = offset.lengthSq() > 0.001
+      ? offset.normalize()
+      : projectileVelocity.clone().negate().applyQuaternion(inverse).normalize();
+    const surfaceScale = Math.sqrt(
+      (localNormal.x / AIRFRAME_RADII.x) ** 2
+      + (localNormal.y / AIRFRAME_RADII.y) ** 2
+      + (localNormal.z / AIRFRAME_RADII.z) ** 2,
+    );
+    const localPosition = localNormal.clone().multiplyScalar(1 / surfaceScale);
+    const surfaceNormal = new Vector3(
+      localPosition.x / AIRFRAME_RADII.x ** 2,
+      localPosition.y / AIRFRAME_RADII.y ** 2,
+      localPosition.z / AIRFRAME_RADII.z ** 2,
+    ).normalize();
+    const localTrail = targetVelocity.clone().negate().applyQuaternion(inverse);
+    if (localTrail.lengthSq() < 0.001) localTrail.set(0, 0, 1);
+    else localTrail.normalize();
+    this.strikes.push({
+      id: this.nextId++,
+      target,
+      localPosition,
+      localNormal: surfaceNormal,
+      localTrail,
+      life: STRIKE_DURATION,
+      duration: STRIKE_DURATION,
+    });
+  }
+
+  private ageEffects(dt: number): void {
+    for (const explosion of this.explosions) explosion.life -= dt;
+    this.explosions = this.explosions.filter(explosion => explosion.life > 0);
+    for (const strike of this.strikes) strike.life -= dt;
+    this.strikes = this.strikes.filter(strike => strike.life > 0);
   }
 
   step(dt: number, aircraft: Aircraft): void {
@@ -126,7 +201,7 @@ export class Combat {
     this.gunCooldown = Math.max(0, this.gunCooldown - dt);
     this.flareCooldown = Math.max(0, this.flareCooldown - dt);
     this.missileCooldown = Math.max(0, this.missileCooldown - dt);
-    if (aircraft.phase === 'crashed') return;
+    if (aircraft.phase === 'crashed') { this.ageEffects(dt); return; }
     const target = this.target;
     if (target) {
       const relative = target.position.clone().sub(aircraft.position);
@@ -193,16 +268,34 @@ export class Combat {
       projectile.position.addScaledVector(projectile.velocity, dt);
       if (projectile.kind === 'hostile' && !projectile.decoyed
         && segmentDistance(aircraft.position, start, projectile.position) < 22) {
+        const impactPosition = segmentClosestPoint(aircraft.position, start, projectile.position);
+        this.missileStrike('player', aircraft.position, aircraft.attitude, impactPosition, projectile.velocity, aircraft.velocity);
         aircraft.health -= 42;
         projectile.life = 0;
-        this.explosions.push({ id: this.nextId++, position: aircraft.position.clone(), life: 0.5 });
+        this.explosions.push({
+          id: this.nextId++, position: impactPosition, life: MISSILE_BLAST_DURATION,
+          duration: MISSILE_BLAST_DURATION, intensity: 1, kind: 'missile',
+        });
         this.notify('Impact! Airframe damaged.', 4);
         if (aircraft.health <= 0) aircraft.crash('Shot down by a hostile missile');
       }
       if (projectile.kind === 'missile' || projectile.kind === 'bullet') {
         for (const bogey of this.bogeys) {
           if (bogey.health > 0 && segmentDistance(bogey.position, start, projectile.position) < (projectile.kind === 'bullet' ? 15 : 30)) {
-            this.hit(bogey, projectile.kind === 'bullet' ? 20 : 100);
+            if (projectile.kind === 'missile') {
+              const direction = new Vector3(0, 0, -1);
+              const attitude = new Quaternion().setFromUnitVectors(direction, bogey.forward);
+              const impactPosition = segmentClosestPoint(bogey.position, start, projectile.position);
+              this.missileStrike(bogey.id, bogey.position, attitude, impactPosition, projectile.velocity, bogey.velocity);
+            }
+            if (projectile.kind === 'missile') {
+              const impactPosition = segmentClosestPoint(bogey.position, start, projectile.position);
+              this.explosions.push({
+                id: this.nextId++, position: impactPosition, life: MISSILE_BLAST_DURATION,
+                duration: MISSILE_BLAST_DURATION, intensity: 1, kind: 'missile',
+              });
+            }
+            this.hit(bogey, projectile.kind === 'bullet' ? 20 : 100, projectile.kind === 'missile');
             projectile.life = 0;
             break;
           }
@@ -211,7 +304,6 @@ export class Combat {
       if (projectile.position.y < terrainHeight(projectile.position.x, projectile.position.z)) projectile.life = 0;
     }
     this.projectiles = this.projectiles.filter(p => p.life > 0);
-    for (const explosion of this.explosions) explosion.life -= dt;
-    this.explosions = this.explosions.filter(e => e.life > 0);
+    this.ageEffects(dt);
   }
 }

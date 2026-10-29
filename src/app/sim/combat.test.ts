@@ -65,10 +65,27 @@ describe('combat scenarios', () => {
     target.forward.set(0, 0, 1);
     combat.lock = 1;
     expect(combat.launch(plane)).toBe(true);
-    advance(combat, plane, 8);
+    for (let i = 0; i < 8 / STEP && target.health > 0; i++) combat.step(STEP, plane);
     expect(combat.kills).toBeGreaterThanOrEqual(1);
     expect(target.health).toBeLessThanOrEqual(0);
     expect(combat.missiles).toBe(5);
+    const strike = combat.strikes.find(effect => effect.target === target.id);
+    expect(strike).toBeDefined();
+    expect(strike!.localPosition.z).toBeLessThan(-8);
+    expect(combat.explosions.some(effect => effect.kind === 'missile' && effect.duration > 2)).toBe(true);
+  });
+
+  it('places missile strikes at the aircraft surface closest to the actual hit', () => {
+    const { plane, combat } = fixture();
+    combat.projectiles.push({
+      id: 1000, kind: 'hostile', position: plane.position.clone().add(new Vector3(25, 0, 0)),
+      velocity: new Vector3(-720, 0, 0), life: 2, target: 0, decoyed: false,
+    });
+    combat.step(STEP, plane);
+    const strike = combat.strikes.find(effect => effect.target === 'player');
+    expect(strike).toBeDefined();
+    expect(Math.abs(strike!.localPosition.x)).toBeGreaterThan(5);
+    expect(Math.abs(strike!.localPosition.z)).toBeLessThan(1);
   });
 
   it('supports held cannon fire with bounded fire rate and ammunition', () => {
@@ -111,6 +128,22 @@ describe('combat scenarios', () => {
     advance(combat, plane, 0.1);
     expect(plane.phase).toBe('crashed');
     expect(plane.health).toBe(0);
+    expect(combat.strikes).toHaveLength(1);
+    expect(combat.strikes[0].target).toBe('player');
+    expect(combat.strikes[0].localPosition.z).toBeGreaterThan(8);
+    expect(combat.explosions[0].kind).toBe('missile');
+    expect(combat.explosions[0].duration).toBeGreaterThan(2);
+  });
+
+  it('does not show missile damage when a hostile projectile misses', () => {
+    const { plane, combat } = fixture();
+    combat.projectiles.push({
+      id: 1000, kind: 'hostile', position: plane.position.clone().add(new Vector3(40, 0, 25)),
+      velocity: new Vector3(0, 0, -600), life: 3, target: 0, decoyed: false,
+    });
+    combat.step(STEP, plane);
+    expect(plane.health).toBe(100);
+    expect(combat.strikes).toHaveLength(0);
   });
 
   it('AI engages with incoming missiles and expired effects are removed', () => {
