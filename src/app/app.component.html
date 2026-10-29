@@ -127,6 +127,12 @@
         @for (contact of radar; track contact.id) {
           <path [attr.transform]="'translate(' + contact.x + ' ' + contact.y + ')'" d="M0-3 3 0 0 3-3 0Z" class="radar-contact" [class.chosen]="contact.selected"/>
         }
+        @for (missile of radarMissiles; track missile.id) {
+          @if (missile.trail) {
+            <polyline [attr.points]="missile.trail" class="radar-missile-trail"/>
+          }
+          <path [attr.transform]="'translate(' + missile.x + ' ' + missile.y + ')'" d="M0-2.5 2 2 0 1-2 2Z" class="radar-missile"/>
+        }
         <text x="50" y="5">N / FWD</text>
       </svg>
       <div class="radar-footer"><span>{{ combat.alive.length }} HOSTILE{{ combat.alive.length === 1 ? '' : 'S' }}</span><span [class.danger-text]="combat.incoming > 0">{{ combat.incoming ? 'MSL INBOUND' : 'RWR CLEAR' }}</span></div>

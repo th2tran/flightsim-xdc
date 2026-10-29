@@ -11,6 +11,7 @@ import { FlightInstructor } from './sim/guidance';
 import { stickResponse } from './sim/controls';
 import { AIRFRAMES } from './sim/airframes';
 import { AircraftPreviewComponent } from './aircraft-preview.component';
+import { Vector3 } from 'three';
 
 @Component({
   selector: 'app-root',
@@ -38,6 +39,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   targets: ScreenTarget[] = [];
   flightPath = { x: 50, y: 50, visible: false };
   radar: { id: number; x: number; y: number; selected: boolean }[] = [];
+  radarMissiles: { id: number; x: number; y: number; trail: string }[] = [];
   pitchMarks = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60];
   headingMarks = [-30, -20, -10, 0, 10, 20, 30];
   stickX = 0;
@@ -65,6 +67,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private accumulator = 0;
   private lastUi = 0;
   private lastCombatExplosionId = 0;
+  private readonly missileRadarHistory = new Map<number, Vector3[]>();
   private keys = new Set<string>();
   private stickPointer: number | null = null;
   private stickElement: HTMLElement | null = null;
@@ -349,6 +352,32 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       const relative = b.position.clone().sub(this.aircraft.position).applyQuaternion(inverse);
       const scale = Math.max(6000, Math.hypot(relative.x, relative.z));
       return { id: b.id, x: 50 + relative.x / scale * 43, y: 50 + relative.z / scale * 43, selected: b.id === this.combat.selected };
+    });
+    const incoming = this.combat.projectiles.filter(projectile => projectile.kind === 'hostile' && !projectile.decoyed);
+    const activeIds = new Set(incoming.map(projectile => projectile.id));
+    for (const id of this.missileRadarHistory.keys()) {
+      if (!activeIds.has(id)) this.missileRadarHistory.delete(id);
+    }
+    this.radarMissiles = incoming.map(projectile => {
+      const history = this.missileRadarHistory.get(projectile.id) ?? [];
+      if (!history.length || history[history.length - 1].distanceToSquared(projectile.position) >= 900) {
+        history.push(projectile.position.clone());
+        if (history.length > 10) history.shift();
+        this.missileRadarHistory.set(projectile.id, history);
+      }
+      const toRadar = (position: Vector3): { x: number; y: number } => {
+        const relative = position.clone().sub(this.aircraft.position).applyQuaternion(inverse);
+        const scale = Math.max(6000, Math.hypot(relative.x, relative.z));
+        return { x: 50 + relative.x / scale * 43, y: 50 + relative.z / scale * 43 };
+      };
+      return {
+        id: projectile.id,
+        ...toRadar(projectile.position),
+        trail: history.length > 1 ? history.map(position => {
+          const point = toRadar(position);
+          return `${point.x},${point.y}`;
+        }).join(' ') : '',
+      };
     });
   }
 
