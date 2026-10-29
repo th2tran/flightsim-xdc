@@ -1,6 +1,7 @@
 # MachStrike
+![MachStrike main screen](screenshots/main-screen.png)
 
-An offline, single-player fighter flight simulator for **webxdc** chat hosts, built with **Angular 22**, **SCSS**, and **Three.js**. Desktop keyboard controls and a multi-touch cockpit drive the same simulation.
+A fighter jet flight simulator for **webxdc** chat hosts, built with **Angular 22**, **SCSS**, and **Three.js**. Desktop keyboard controls and a multi-touch cockpit drive the same simulation.
 
 ## Run and package
 
@@ -66,8 +67,11 @@ Corrective instructions interrupt lessons for stalls, low descending flight, ste
 ### Sorties
 
 - **Flight school:** no hostile fighters; 12 guided steps covering flight, landing, departure and combat drills against training drones.
+  ![Flight school](screenshots/flight-school.png)
+
 - **Coastal intercept:** three armed bogeys, deliberate missile cadence.
 - **Overwhelming odds:** five faster bogeys with more frequent missile attacks.
+  ![Combat mode - overwhelming odds](screenshots/overwhelming-odds.png)
 
 Every sortie can begin airborne or on runway 36. Loadout: six infrared missiles, 640 cannon rounds, 24 flares. Acquisition requires the target within 9 degrees and 6.5 km for 1.8 seconds. Missiles have finite turn rate and fuel/time limits; cannon rounds use swept collision tests. Enemy missiles can be decoyed by flares within 1.6 km; separation and evasive maneuvering still matter. Neutralize every bogey, then return to the airbase. Kills score 1,000 points; a runway landing scores 500.
 
