@@ -3,6 +3,7 @@ import { AIRFRAMES } from './airframes';
 import { Aircraft, STEP } from './flight';
 import { Autopilot } from './autopilot';
 import { makeJet } from './renderer';
+import { Combat } from './combat';
 import { Box3, Mesh, Vector3 } from 'three';
 
 describe('selectable airframes', () => {
@@ -65,5 +66,14 @@ describe('selectable airframes', () => {
     });
     expect(new Set(results.map(([speed]) => speed.toFixed(3))).size).toBe(AIRFRAMES.length);
     expect(new Set(results.map(([, roll]) => roll.toFixed(6))).size).toBe(AIRFRAMES.length);
+  });
+
+  it.each(AIRFRAMES)('$label applies its own airborne start and loadout', profile => {
+    const aircraft = new Aircraft(false, profile);
+    expect(aircraft.position.y).toBe(profile.start.altitude);
+    expect(aircraft.airspeed).toBe(profile.start.speed);
+    const combat = new Combat();
+    combat.reset('intercept', aircraft);
+    expect([combat.missiles, combat.rounds, combat.flares]).toEqual([profile.loadout.missiles, profile.loadout.rounds, profile.loadout.flares]);
   });
 });

@@ -1,4 +1,5 @@
 import { Quaternion, Vector3 } from 'three';
+import type { Loadout } from './airframes';
 import { Aircraft, clamp, Scenario, terrainHeight } from './flight';
 
 export interface Bogey {
@@ -64,6 +65,7 @@ export class Combat {
   missiles = 6;
   rounds = 640;
   flares = 24;
+  loadout: Loadout = { missiles: 6, rounds: 640, flares: 24 };
   kills = 0;
   gunKills = 0;
   missileKills = 0;
@@ -86,9 +88,10 @@ export class Combat {
     this.strikes = [];
     this.selected = 0;
     this.lock = 0;
-    this.missiles = 6;
-    this.rounds = 640;
-    this.flares = 24;
+    this.loadout = { ...aircraft.airframe.loadout };
+    this.missiles = this.loadout.missiles;
+    this.rounds = this.loadout.rounds;
+    this.flares = this.loadout.flares;
     this.kills = this.gunKills = this.missileKills = this.missilesDefeated = 0;
     this.time = this.gunCooldown = this.flareCooldown = this.missileCooldown = 0;
     this.firing = false;

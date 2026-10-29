@@ -59,8 +59,9 @@ export class Aircraft {
   constructor(runway = false, public airframe: Airframe = AIRFRAMES[0]) { this.reset(runway); }
 
   reset(runway: boolean): void {
-    this.position.set(0, runway ? GEAR_HEIGHT : 1100, runway ? 1150 : 3400);
-    this.velocity.set(0, 0, runway ? 0 : -165);
+    const start = this.airframe.start;
+    this.position.set(0, runway ? GEAR_HEIGHT : start.altitude, runway ? 1150 : 3400);
+    this.velocity.set(0, 0, runway ? 0 : -start.speed);
     this.attitude.setFromAxisAngle(new Vector3(1, 0, 0), runway ? 0 : 0.035);
     this.rates.set(0, 0, 0);
     this.phase = runway ? 'parked' : 'airborne';
@@ -73,7 +74,7 @@ export class Aircraft {
     this.controls.brake = false;
     this.surfaces.elevator = this.surfaces.aileron = this.surfaces.rudder = 0;
     this.gLoad = 1;
-    this.airspeed = runway ? 0 : 165;
+    this.airspeed = runway ? 0 : start.speed;
     this.alpha = this.beta = this.verticalSpeed = 0;
     this.stalled = false;
     this.touchdownRate = 0;

@@ -12,7 +12,7 @@ import { Autopilot } from './sim/autopilot';
 import { FlightInstructor } from './sim/guidance';
 import { FlyByWire } from './sim/fly-by-wire';
 import { stickResponse } from './sim/controls';
-import { AIRFRAMES } from './sim/airframes';
+import { AIRFRAMES, metresToFeet, msToKnots } from './sim/airframes';
 import { AircraftPreviewComponent } from './aircraft-preview.component';
 import { Vector3 } from 'three';
 
@@ -37,6 +37,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   runwayStart = false;
   readonly airframes = AIRFRAMES;
   selectedAirframe = AIRFRAMES[0];
+  get startAltitudeFeet(): number { return Math.round(metresToFeet(this.selectedAirframe.start.altitude) / 100) * 100; }
+  get startSpeedKnots(): number { return Math.round(msToKnots(this.selectedAirframe.start.speed) / 10) * 10; }
   touch = window.matchMedia('(pointer: coarse)').matches;
   cockpit = false;
   targets: ScreenTarget[] = [];

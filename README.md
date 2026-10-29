@@ -73,7 +73,7 @@ Corrective instructions interrupt lessons for stalls, low descending flight, ste
 - **Overwhelming odds:** five faster bogeys with more frequent missile attacks.
   ![Combat mode - overwhelming odds](screenshots/overwhelming-odds.png)
 
-Every sortie can begin airborne or on runway 36. Loadout: six infrared missiles, 640 cannon rounds, 24 flares. Acquisition requires the target within 9 degrees and 6.5 km for 1.8 seconds. Missiles have finite turn rate and fuel/time limits; cannon rounds use swept collision tests. Enemy missiles can be decoyed by flares within 1.6 km; separation and evasive maneuvering still matter. Neutralize every bogey, then return to the airbase. Kills score 1,000 points; a runway landing scores 500.
+Every sortie can begin airborne or on runway 36. Loadout and airborne start vary by aircraft and are shown in the briefing: F/A-27 6 IR missiles · 640 rounds · 24 flares (3,600 ft · 320 kt); F-14 6 · 675 · 30 (4,900 ft · 350 kt); F-15E 8 · 510 · 30 (3,900 ft · 340 kt); F-22 8 · 480 · 24 (4,900 ft · 360 kt); YF-23 6 · 480 · 24 (4,600 ft · 360 kt). Acquisition requires the target within 9 degrees and 6.5 km for 1.8 seconds. Missiles have finite turn rate and fuel/time limits; cannon rounds use swept collision tests. Enemy missiles can be decoyed by flares within 1.6 km; separation and evasive maneuvering still matter. Neutralize every bogey, then return to the airbase. Kills score 1,000 points; a runway landing scores 500.
 
 ## Simulation and rendering
 

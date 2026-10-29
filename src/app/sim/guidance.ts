@@ -70,7 +70,7 @@ export class FlightInstructor {
 
   private runDrill(combat: Combat, aircraft: Aircraft, dt: number): void {
     if (this.step >= LOCK && this.step <= MISSILE) {
-      if (this.step === GUNS && combat.rounds < 200) combat.rounds = 640;
+      if (this.step === GUNS && combat.rounds < 200) combat.rounds = combat.loadout.rounds;
       if (this.step === MISSILE && combat.missiles < 2) combat.missiles = 2;
       if (!combat.alive.some(bogey => bogey.drone)) {
         const misuse = this.step === GUNS ? combat.missileKills : this.step === MISSILE ? combat.gunKills : 0;
@@ -83,7 +83,7 @@ export class FlightInstructor {
       }
     }
     if (this.step === DEFEND) {
-      if (combat.flares < 6) combat.flares = 24;
+      if (combat.flares < 6) combat.flares = combat.loadout.flares;
       if (combat.projectiles.some(projectile => projectile.kind === 'hostile' && !projectile.decoyed)) { this.delay = 4; return; }
       this.delay -= dt;
       if (this.delay <= 0) { combat.launchTrainingMissile(aircraft); this.delay = 4; }

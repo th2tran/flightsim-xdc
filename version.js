@@ -1,2 +1,2 @@
 // Generated release metadata. Keep aligned with package.json.
-export const VERSION = "0.6.0.43";
+export const VERSION = "0.6.0.44";
