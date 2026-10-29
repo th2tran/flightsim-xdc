@@ -45,6 +45,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   audioPanel = false;
   audioError = '';
   effectsError = '';
+  audioSettingsError = '';
   readonly sound = new FlightSound((error: unknown) => {
     console.warn('Flight sound effects unavailable', error);
     this.effectsError = 'Sound effects are unavailable in this host. Visual warnings remain active.';
@@ -82,6 +83,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.error = 'WebGL 2 is unavailable. Use an up-to-date chat app or browser with hardware acceleration enabled.';
     }
     this.combat.reset('intercept', this.aircraft);
+    this.restoreAudioSettings();
     try {
       const saved = Number(localStorage.getItem('afterburner-best') ?? 0);
       this.best = Number.isFinite(saved) && saved >= 0 ? saved : 0;
@@ -161,6 +163,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
   setEffectsVolume(event: Event): void {
     this.sound.setVolume(Number((event.target as HTMLInputElement).value) / 100);
+    this.saveAudioSettings();
   }
   toggleMusic(): void {
     this.music.enabled = !this.music.enabled;
@@ -169,6 +172,40 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
   setMusicVolume(event: Event): void {
     this.music.setVolume(Number((event.target as HTMLInputElement).value) / 100);
+    this.saveAudioSettings();
+  }
+
+  private restoreAudioSettings(): void {
+    try {
+      const saved = localStorage.getItem('afterburner-audio');
+      if (saved === null) return;
+      const settings: unknown = JSON.parse(saved);
+      if (typeof settings !== 'object' || settings === null
+        || !('musicVolume' in settings) || !('effectsVolume' in settings)
+        || typeof settings.musicVolume !== 'number' || !Number.isFinite(settings.musicVolume)
+        || settings.musicVolume < 0 || settings.musicVolume > 1
+        || typeof settings.effectsVolume !== 'number' || !Number.isFinite(settings.effectsVolume)
+        || settings.effectsVolume < 0 || settings.effectsVolume > 1) {
+        throw new Error('Invalid saved audio volume settings');
+      }
+      this.music.setVolume(settings.musicVolume);
+      this.sound.setVolume(settings.effectsVolume);
+    } catch (error: unknown) {
+      console.warn('Unable to restore audio settings', error);
+      this.audioSettingsError = 'Saved volume settings could not be restored. Default volumes are in use.';
+    }
+  }
+
+  private saveAudioSettings(): void {
+    try {
+      localStorage.setItem('afterburner-audio', JSON.stringify({
+        musicVolume: this.music.volume, effectsVolume: this.sound.volume,
+      }));
+      this.audioSettingsError = '';
+    } catch (error: unknown) {
+      console.warn('Unable to save audio settings', error);
+      this.audioSettingsError = 'Volume settings could not be saved in this host. Current volumes still apply.';
+    }
   }
   engageAutopilot(recovery = false): void {
     if (!this.running) { this.combat.notify('Resume airborne flight before engaging autopilot.'); return; }
@@ -223,7 +260,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.cockpit = !this.cockpit;
     if (this.graphics) this.graphics.cockpit = this.cockpit;
   }
-  launch(): void { if (this.running) this.combat.launch(this.aircraft); }
+  launch(): void { if (this.running && this.combat.launch(this.aircraft)) this.sound.playMissile(); }
   flare(): void { if (this.running) this.combat.releaseFlares(this.aircraft); }
   target(): void { if (this.running) this.combat.cycleTarget(); }
   async fullscreen(): Promise<void> {
@@ -247,7 +284,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       while (this.accumulator >= STEP) {
         this.updateControls(STEP);
         this.aircraft.step(STEP);
+        const roundsBefore = this.combat.rounds;
         this.combat.step(STEP, this.aircraft);
+        if (this.combat.rounds < roundsBefore) this.sound.playGun();
         if (this.activeScenario === 'training') this.instructor.update(this.aircraft, this.autopilot, STEP);
         this.accumulator -= STEP;
         if (this.aircraft.phase === 'crashed') {

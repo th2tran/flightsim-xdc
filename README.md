@@ -87,9 +87,13 @@ Browser-based development checks cannot guarantee compatibility with every embed
 
 The original **Northstar** cue uses cinematic synth brass, layered strings, bass, and marching field drums. It evokes a broad military-aviation atmosphere without using any film recordings, samples, or existing theme melodies. Web Audio renders a roughly 42-second stereo loop locally after the first launch gesture; no audio downloads or additional dependencies are needed.
 
-Open **Music settings** (the musical-note button in the header) to mute or adjust volume, initially 35%. Playback follows flight: menus, the manual, pause, and the end of a sortie suspend audio. Losing focus does not stop playback, though the host may suspend background audio. Resume or relaunch after a pause to continue. Settings last for the current app instance. Hosts without usable Web Audio display an explicit message in music settings; the simulator remains playable.
+Open **Music settings** (the musical-note button in the header) to mute or adjust volume, initially 35%. Music and effects volume levels are saved locally and restored on the next launch; mute toggles remain specific to the current app instance. Storage failures are reported in the settings panel without blocking playback or flight. Playback follows flight: menus, the manual, pause, and the end of a sortie suspend audio. Losing focus does not stop playback, though the host may suspend background audio. Resume or relaunch after a pause to continue. Hosts without usable Web Audio display an explicit message in music settings; the simulator remains playable.
 
 ### Engine and warning effects
+
+The cannon plays a short synthesized report for each round actually fired, matching the 20-round-per-second firing cadence. Gun audio shares effects volume/mute, stops producing reports when firing stops or ammunition runs out, and cancels active reports on pause, menus, or a crash. It uses no downloaded recordings.
+
+Successful missile launches play a synthesized rocket ignition and 1.1-second departing whoosh. Failed launch attempts (no lock, cooldown, or depleted missiles) remain silent apart from communications. Launch audio shares effects volume/mute and is canceled on pause, menus, or a crash.
 
 The same panel has independent **effects mute and volume** controls (55% initially). A synthesized twin-turbine whine and filtered jet roar track throttle, with extra roar above 88% afterburner power. Fuel exhaustion silences the engine. Warnings duck the engine and play distinct looping tones: rapid alternating missile alert, pulsed terrain alarm, sustained stall horn, and separate over-G, overspeed, low-fuel, and gear-speed alerts. The audible priority matches the HUD: missile, terrain, stall, G, speed, fuel, gear. Only the highest-priority warning sounds at a time; it stops when the condition clears.
 

@@ -32,6 +32,7 @@
       @if (effectsError) { <p role="status" class="danger-text">{{ effectsError }}</p> }
       <small>Muting effects also silences audible warnings. HUD warnings remain active.</small>
       <small>Plays during flight. Pauses with the simulation.</small>
+      @if (audioSettingsError) { <p role="status" class="danger-text">{{ audioSettingsError }}</p> }
     </section>
   }
 

@@ -172,6 +172,8 @@ try {
       assert.ok(await page.locator('.stick-knob').evaluate(el => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42 > 10), 'Touch stick must actually deflect');
       assert.match(await page.locator('.autopilot-status').innerText(), /OFF/, 'Touch stick must disconnect autopilot');
       assert.ok(Number(await gun.locator('strong').innerText()) < 640, 'Cannon must fire while the stick is held');
+      assert.ok(await page.evaluate(() => window.testAudioSources.some(source => !source.loop
+        && Math.abs((source.buffer?.duration ?? 0) - 0.09) < 0.001)), 'Fired cannon rounds must produce gun audio');
       await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [{ ...stickTouch, y: box.y + box.height * 0.75 }] });
       await page.waitForFunction(() => new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.stick-knob')).transform).m42 === 0);
       await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
@@ -179,6 +181,11 @@ try {
       const rounds = await gun.locator('strong').innerText();
       await page.waitForTimeout(150);
       assert.equal(await gun.locator('strong').innerText(), rounds, 'Releasing the gun must stop firing');
+      const reports = () => page.evaluate(() => window.testAudioSources.filter(source => !source.loop
+        && Math.abs((source.buffer?.duration ?? 0) - 0.09) < 0.001).length);
+      const reportCount = await reports();
+      await page.waitForTimeout(150);
+      assert.equal(await reports(), reportCount, 'Releasing the gun must stop producing reports');
       await session.detach();
     } else {
       await page.keyboard.press('h');
@@ -218,9 +225,43 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     assert.equal(overflow, false);
     assert.deepEqual(external, [], 'App should make no external network requests');
+    await page.reload();
+    await page.getByRole('heading', { name: 'Own the sky.' }).waitFor();
+    assert.equal(await page.evaluate(() => window.testAudioContexts.length), 0, 'Restoring volumes must not start audio');
+    await page.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
+    await page.getByRole('button', { name: 'Music settings', exact: true }).click();
+    assert.equal(await page.getByRole('slider', { name: 'Music volume' }).inputValue(), '20');
+    assert.equal(await page.getByRole('slider', { name: 'Sound effects volume' }).inputValue(), '40');
     console.log(`Browser smoke passed: ${viewport.width} x ${viewport.height}`);
     await context.close();
   }
+  for (const invalid of ['{"musicVolume":2,"effectsVolume":0.4}', 'not-json']) {
+    const storageContext = await browser.newContext();
+    await storageContext.addInitScript(value => localStorage.setItem('afterburner-audio', value), invalid);
+    const storagePage = await storageContext.newPage();
+    storagePage.on('pageerror', error => errors.push(error.message));
+    await storagePage.goto(url);
+    await storagePage.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
+    await storagePage.getByRole('button', { name: 'Music settings', exact: true }).click();
+    await storagePage.getByText('Saved volume settings could not be restored. Default volumes are in use.').waitFor();
+    assert.equal(await storagePage.getByRole('slider', { name: 'Music volume' }).inputValue(), '35');
+    assert.equal(await storagePage.getByRole('slider', { name: 'Sound effects volume' }).inputValue(), '55');
+    await storagePage.getByRole('slider', { name: 'Music volume' }).fill('0');
+    assert.equal(await storagePage.getByText('Saved volume settings could not be restored. Default volumes are in use.').count(), 0);
+    await storageContext.close();
+  }
+  const blockedStorage = await browser.newContext();
+  await blockedStorage.addInitScript(() => {
+    Storage.prototype.setItem = () => { throw new DOMException('Storage blocked', 'SecurityError'); };
+  });
+  const blockedPage = await blockedStorage.newPage();
+  await blockedPage.goto(url);
+  await blockedPage.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
+  await blockedPage.getByRole('button', { name: 'Music settings', exact: true }).click();
+  await blockedPage.getByRole('slider', { name: 'Music volume' }).fill('0');
+  await blockedPage.getByText('Volume settings could not be saved in this host. Current volumes still apply.').waitFor();
+  assert.equal(await blockedPage.getByRole('slider', { name: 'Music volume' }).inputValue(), '0');
+  await blockedStorage.close();
   const unsupported = await browser.newContext();
   await unsupported.addInitScript(() => { window.AudioContext = undefined; });
   const silentPage = await unsupported.newPage();
