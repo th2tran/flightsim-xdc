@@ -9,11 +9,13 @@ import { flightWarning, WARNING_LABELS } from './sim/warnings';
 import { Autopilot } from './sim/autopilot';
 import { FlightInstructor } from './sim/guidance';
 import { stickResponse } from './sim/controls';
+import { AIRFRAMES } from './sim/airframes';
+import { AircraftPreviewComponent } from './aircraft-preview.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [DecimalPipe, UpperCasePipe],
+  imports: [DecimalPipe, UpperCasePipe, AircraftPreviewComponent],
   templateUrl: './app.component.html',
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
@@ -29,6 +31,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   scenario: Scenario = 'intercept';
   activeScenario: Scenario = 'intercept';
   runwayStart = false;
+  readonly airframes = AIRFRAMES;
+  selectedAirframe = AIRFRAMES[0];
   touch = window.matchMedia('(pointer: coarse)').matches;
   cockpit = false;
   targets: ScreenTarget[] = [];
@@ -141,6 +145,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (this.error) return;
     this.sound.stopCrash();
     this.releaseControls();
+    this.aircraft.airframe = this.selectedAirframe;
     this.aircraft.reset(this.runwayStart);
     this.instructor.reset(this.aircraft);
     this.autopilot.disengage();

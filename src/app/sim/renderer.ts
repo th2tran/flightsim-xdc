@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { Aircraft, clamp, terrainHeight } from './flight';
 import { Combat } from './combat';
+import { AIRFRAMES } from './airframes';
+import { makeJet } from './jet-model';
+export { makeJet } from './jet-model';
 
 export interface ScreenTarget { id: number; x: number; y: number; visible: boolean; selected: boolean; range: number; }
 
@@ -8,67 +11,12 @@ function material(color: number): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.78, metalness: 0.20 });
 }
 
-export function makeJet(hostile = false): THREE.Group {
-  const jet = new THREE.Group();
-  const hull = material(hostile ? 0x696b71 : 0x9caeb7);
-  const dark = material(0x26343e);
-  const accent = material(hostile ? 0xf96d56 : 0xe9aa5a);
-  const mesh = (geometry: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0): THREE.Mesh => {
-    const part = new THREE.Mesh(geometry, mat);
-    part.position.set(x, y, z);
-    jet.add(part);
-    return part;
-  };
-  mesh(new THREE.CylinderGeometry(0.7, 1, 10, 10), hull, 0, 0, 0).rotation.x = Math.PI / 2;
-  mesh(new THREE.ConeGeometry(0.72, 4, 10), dark, 0, 0, -7).rotation.x = -Math.PI / 2;
-  const canopy = mesh(new THREE.SphereGeometry(0.8, 12, 8), material(0x345563), 0, 0.75, -2.5);
-  canopy.scale.set(0.8, 0.7, 2.2);
-  const wing = (side: number, z: number, size: number, name: string): THREE.Group => {
-    const pivot = new THREE.Group();
-    pivot.name = name;
-    pivot.position.set(side * 0.65, 0, z);
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute([
-      0, 0, -size, side * size, 0, size * 0.65, 0, 0, size,
-      0, -0.10, -size, 0, -0.10, size, side * size, -0.10, size * 0.65,
-    ], 3));
-    geometry.computeVertexNormals();
-    const part = new THREE.Mesh(geometry, hull);
-    part.material = hull.clone();
-    part.material.side = THREE.DoubleSide;
-    pivot.add(part);
-    jet.add(pivot);
-    return pivot;
-  };
-  wing(-1, 0.5, 5, 'leftWing');
-  wing(1, 0.5, 5, 'rightWing');
-  wing(-1, 4.2, 2, 'leftElevator');
-  wing(1, 4.2, 2, 'rightElevator');
-  for (const side of [-1, 1]) {
-    const fin = mesh(new THREE.BoxGeometry(0.12, 2.8, 2.3), accent, side * 0.9, 1.3, 3.8);
-    fin.rotation.z = side * -0.20;
-    mesh(new THREE.CylinderGeometry(0.52, 0.65, 1.1, 10), dark, side * 0.6, -0.15, 5).rotation.x = Math.PI / 2;
-    const flame = mesh(new THREE.ConeGeometry(0.45, 3, 8), new THREE.MeshBasicMaterial({ color: 0xffaa55 }), side * 0.6, -0.15, 6.7);
-    flame.name = `exhaust${side}`;
-    flame.rotation.x = Math.PI / 2;
-    const wheel = mesh(new THREE.BoxGeometry(0.25, 1.7, 0.35), dark, side * 1.2, -1.2, 1);
-    wheel.name = `gear${side}`;
-    const aileron = new THREE.Group();
-    aileron.name = side < 0 ? 'leftAileron' : 'rightAileron';
-    aileron.position.set(side * 3.5, 0, 3);
-    aileron.add(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.10, 0.65), accent));
-    jet.add(aileron);
-  }
-  const rudder = mesh(new THREE.BoxGeometry(0.1, 2.2, 0.7), dark, 0, 1.1, 4.8);
-  rudder.name = 'rudder';
-  return jet;
-}
-
 export class FlightRenderer {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(64, 1, 0.5, 65000);
   readonly renderer: THREE.WebGLRenderer;
-  readonly player = makeJet();
+  player = makeJet();
+  private playerAirframe = AIRFRAMES[0];
   cockpit = false;
   private readonly enemyMeshes = new Map<number, THREE.Group>();
   private readonly effectMeshes = new Map<number, THREE.Mesh>();
@@ -212,6 +160,13 @@ export class FlightRenderer {
   }
 
   draw(aircraft: Aircraft, combat: Combat): ScreenTarget[] {
+    if (this.playerAirframe !== aircraft.airframe) {
+      this.scene.remove(this.player);
+      this.disposeObject(this.player);
+      this.player = makeJet(false, aircraft.airframe);
+      this.playerAirframe = aircraft.airframe;
+      this.scene.add(this.player);
+    }
     this.player.position.copy(aircraft.position);
     this.player.quaternion.copy(aircraft.attitude);
     this.player.visible = !this.cockpit && aircraft.phase !== 'crashed';

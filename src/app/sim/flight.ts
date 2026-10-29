@@ -1,4 +1,5 @@
 import { Quaternion, Vector3 } from 'three';
+import { AIRFRAMES, Airframe } from './airframes';
 
 export type FlightPhase = 'parked' | 'takeoff' | 'airborne' | 'landed' | 'crashed';
 export type Scenario = 'training' | 'intercept' | 'furball';
@@ -55,7 +56,7 @@ export class Aircraft {
   private readonly delta = new Quaternion();
   private readonly axis = new Vector3();
 
-  constructor(runway = false) { this.reset(runway); }
+  constructor(runway = false, public airframe: Airframe = AIRFRAMES[0]) { this.reset(runway); }
 
   reset(runway: boolean): void {
     this.position.set(0, runway ? GEAR_HEIGHT : 1100, runway ? 1150 : 3400);
@@ -66,7 +67,7 @@ export class Aircraft {
     this.gear = runway;
     this.flaps = runway;
     this.health = 100;
-    this.fuel = 2400;
+    this.fuel = this.airframe.fuel;
     this.controls.throttle = runway ? 0 : 0.72;
     this.controls.pitch = this.controls.roll = this.controls.yaw = 0;
     this.controls.brake = false;
@@ -109,8 +110,8 @@ export class Aircraft {
     this.beta = Math.atan2(this.bodyVelocity.x, Math.max(1, forwardSpeed));
     const density = 1.225 * Math.exp(-Math.max(0, this.position.y) / 8500);
     const q = 0.5 * density * speed * speed;
-    const area = 28;
-    const mass = 8500 + this.fuel;
+    const area = this.airframe.wingArea;
+    const mass = this.airframe.mass + this.fuel;
     const response = 1 - Math.exp(-dt * 9);
     this.surfaces.elevator += (clamp(this.controls.pitch, -1, 1) * 0.44 - this.surfaces.elevator) * response;
     this.surfaces.aileron += (clamp(this.controls.roll, -1, 1) * 0.35 - this.surfaces.aileron) * response;
@@ -120,11 +121,11 @@ export class Aircraft {
     let liftCoefficient = 0.16 + 4.6 * this.alpha + (this.flaps ? 0.42 : 0);
     if (this.stalled) liftCoefficient *= Math.max(0.18, 1 - (Math.abs(this.alpha) - criticalAlpha) * 2.5);
     liftCoefficient = clamp(liftCoefficient, -1.7, 1.8);
-    const dragCoefficient = 0.025 + 0.065 * liftCoefficient ** 2
+    const dragCoefficient = this.airframe.drag + 0.065 * liftCoefficient ** 2
       + (this.gear ? 0.035 : 0) + (this.flaps ? 0.04 : 0)
       + (this.stalled ? 0.18 : 0) + Math.max(0, speed - 290) * 0.0007;
     const throttle = clamp(this.controls.throttle, 0, 1);
-    const thrust = this.fuel > 0 ? (throttle * 85000 + Math.max(0, throttle - 0.88) / 0.12 * 45000) : 0;
+    const thrust = this.fuel > 0 ? (throttle * this.airframe.thrust + Math.max(0, throttle - 0.88) / 0.12 * this.airframe.afterburner) : 0;
     this.fuel = Math.max(0, this.fuel - dt * (0.25 + throttle * 0.9 + (throttle > 0.88 ? 2 : 0)));
     this.force.copy(this.bodyVelocity).multiplyScalar(speed > 0.01 ? -q * area * dragCoefficient / speed : 0);
     // Lift is perpendicular to the local relative wind, not fixed to world-up.
@@ -156,7 +157,7 @@ export class Aircraft {
       - this.surfaces.rudder * 0.13 - this.rates.y * 3 / Math.max(speed, 40));
     const rollTorque = q * area * 10 * (-this.surfaces.aileron * 0.13
       - this.rates.z * 2.3 / Math.max(speed, 40));
-    const ix = 70000, iy = 85000, iz = 25000;
+    const ix = 70000 * this.airframe.inertia, iy = 85000 * this.airframe.inertia, iz = 25000 * this.airframe.inertia;
     // Euler rigid-body equation includes gyroscopic cross-coupling.
     this.rates.x += dt * (pitchTorque - (iz - iy) * this.rates.y * this.rates.z) / ix;
     this.rates.y += dt * (yawTorque - (ix - iz) * this.rates.z * this.rates.x) / iy;

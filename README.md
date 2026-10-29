@@ -25,6 +25,12 @@ Send **`dist/afterburner-<version>.xdc`** into a Delta Chat or compatible webxdc
 
 ## Flying
 
+The briefing's aircraft thumbnail renders the selected 3D model and updates immediately when an aircraft option is clicked. It is rendered only on selection or resize, with no external image downloads.
+
+Choose an aircraft in the mission briefing before launching: the original **F/A-27**, **F-14 Tomcat**, **F-15E Strike Eagle**, **F-22 Raptor**, or **Northrop YF-23 Black Widow II**. Each has a distinct procedural silhouette, finish and gameplay-balanced mass, fuel capacity, wing area, thrust, drag and angular inertia. The Tomcat is a heavier swept-wing interceptor; the Strike Eagle emphasizes power, the Raptor agility, and the YF-23 low drag with diamond wings and a V-tail. These are simplified representations, not certified real-world performance models; variable wing sweep, thrust vectoring and radar-stealth simulation are not modeled. Weapons and controls remain shared.
+
+Selection takes effect on the next launch; resuming an existing sortie keeps its current aircraft. Autopilot trim and thrust calculations use the active profile, and the fuel gauge scales to its capacity. Procedural models use aircraft-specific fuselage sections, wing/tail planforms, canopy proportions, intakes, exhausts and landing gear: the Tomcat has widely spaced nacelles and swept wings, the Eagle broad wings and upright twin tails, the Raptor angular wings and rectangular exhausts, and the YF-23 diamond wings, canted V-tail and aft exhaust troughs. These are lightweight visual approximations rather than photorealistic scanned models.
+
 | Action | Desktop | Touch |
 |---|---|---|
 | Pitch | Down / S pulls up; Up / W pushes down | Drag stick down to pull up |

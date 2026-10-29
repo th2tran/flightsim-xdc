@@ -36,7 +36,7 @@
     </section>
   }
 
-  <div class="flight-info"><span class="tag">F / A — 27</span><span>VIPER 1–1</span><span class="muted">6-DOF / {{ cockpit ? 'HUD' : 'CHASE' }}</span><button class="autopilot-status" [class.engaged]="autopilot.active" (click)="autopilotPanel = !autopilotPanel; audioPanel = false" aria-label="Autopilot settings" aria-controls="autopilot-settings" [attr.aria-expanded]="autopilotPanel">AP {{ autopilot.status }}</button></div>
+  <div class="flight-info"><span class="tag">{{ aircraft.airframe.name }}</span><span>VIPER 1–1</span><span class="muted">6-DOF / {{ cockpit ? 'HUD' : 'CHASE' }}</span><button class="autopilot-status" [class.engaged]="autopilot.active" (click)="autopilotPanel = !autopilotPanel; audioPanel = false" aria-label="Autopilot settings" aria-controls="autopilot-settings" [attr.aria-expanded]="autopilotPanel">AP {{ autopilot.status }}</button></div>
   @if (autopilotPanel) {
     <section id="autopilot-settings" class="autopilot-settings panel" aria-label="Autopilot controls">
       <div class="panel-heading"><span>AUTOPILOT / {{ autopilot.mode | uppercase }}</span><button (click)="autopilotPanel = false" aria-label="Close autopilot settings">✕</button></div>
@@ -107,7 +107,7 @@
       <input class="throttle-slider" aria-label="Engine throttle" type="range" min="0" max="100" step="1" [value]="aircraft.controls.throttle * 100" (input)="setThrottle($event)">
       <div class="scale-labels"><span>IDLE</span><span>MAX</span></div>
       <div class="fuel-line"><span>FUEL</span><strong>{{ aircraft.fuel | number:'1.0-0' }} <small>KG</small></strong></div>
-      <div class="fuel-bar"><span [style.width.%]="aircraft.fuel / 24"></span></div>
+      <div class="fuel-bar"><span [style.width.%]="aircraft.fuel / aircraft.airframe.fuel * 100"></span></div>
     </div>
     <div class="configuration">
       <button [class.active]="aircraft.gear" (click)="toggleGear()"><span class="indicator"></span>GEAR<kbd>G</kbd><b>{{ aircraft.gear ? 'DN' : 'UP' }}</b></button>
@@ -182,8 +182,15 @@
       } @else if (menu) {
         <section class="dialog briefing" role="dialog" aria-modal="true" aria-labelledby="briefing-title">
           <div class="dialog-top"><span class="eyebrow"><span class="live-dot"></span> FLIGHT OPERATIONS / NORTHSTAR</span><span class="offline-label">OFFLINE READY</span></div>
-          <div class="briefing-title"><div><h1 id="briefing-title">Own the <em>sky.</em></h1><p>One pilot. Open airspace. No second chances.</p></div><svg class="briefing-jet" viewBox="0 0 160 160" aria-hidden="true"><path d="M80 5 88 64 144 106 144 118 91 99 87 133 105 149 80 143 55 149 73 133 69 99 16 118 16 106 72 64Z"/><path d="M80 25V140 M24 110 75 84 M136 110 85 84"/></svg></div>
-          <div class="section-label"><span>SELECT YOUR SORTIE</span><span>F/A–27 · MULTIROLE FIGHTER</span></div>
+          <div class="briefing-title"><div><h1 id="briefing-title">Own the <em>sky.</em></h1><p>One pilot. Open airspace. No second chances.</p></div><app-aircraft-preview class="briefing-jet" [airframe]="selectedAirframe" /></div>
+          <div class="section-label"><span>SELECT YOUR AIRCRAFT</span><span>GAMEPLAY-BALANCED PROFILES</span></div>
+          <div class="aircraft-options">
+            @for (airframe of airframes; track airframe.id) {
+              <button [class.chosen]="selectedAirframe === airframe" [attr.aria-pressed]="selectedAirframe === airframe" (click)="selectedAirframe = airframe">{{ airframe.label }}</button>
+            }
+          </div>
+          <p class="aircraft-description">{{ selectedAirframe.description }}</p>
+          <div class="section-label"><span>SELECT YOUR SORTIE</span><span>{{ selectedAirframe.name }}</span></div>
           <div class="scenario-grid">
             <button class="scenario-card" [class.chosen]="scenario === 'training'" (click)="scenario = 'training'"><span class="card-number">01 <small>ORIENTATION</small></span><span class="card-symbol">◎</span><strong>Flight school</strong><p>Learn the aircraft. Fly the pattern. Make it home.</p><span class="card-footer">NO HOSTILES <b>FREE FLIGHT ↗</b></span></button>
             <button class="scenario-card" [class.chosen]="scenario === 'intercept'" (click)="scenario = 'intercept'"><span class="card-number">02 <small>STANDARD</small></span><span class="card-symbol">⌖</span><strong>Coastal intercept</strong><p>Three bandits inbound. Intercept and secure the airspace.</p><span class="card-footer">3 HOSTILES <b>AIR TO AIR ↗</b></span></button>

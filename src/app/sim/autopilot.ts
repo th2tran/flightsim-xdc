@@ -176,8 +176,8 @@ export class Autopilot {
   private controlVertical(aircraft: Aircraft, dt: number, verticalTarget: number): void {
     const bank = aircraft.bank;
     const density = 1.225 * Math.exp(-Math.max(0, aircraft.position.y) / 8500);
-    const qArea = 0.5 * density * aircraft.airspeed ** 2 * 28;
-    const mass = 8500 + aircraft.fuel;
+    const qArea = 0.5 * density * aircraft.airspeed ** 2 * aircraft.airframe.wingArea;
+    const mass = aircraft.airframe.mass + aircraft.fuel;
     const liftCoefficient = mass * G / (qArea * Math.max(0.65, Math.cos(bank)));
     const trimAlpha = clamp((liftCoefficient - 0.16 - (aircraft.flaps ? 0.42 : 0)) / 4.6, -0.06, 0.18);
     const targetPitch = clamp(trimAlpha + Math.asin(clamp(verticalTarget / aircraft.airspeed, -0.15, 0.15))
@@ -187,9 +187,9 @@ export class Autopilot {
       - aircraft.rates.x * 0.28, -0.35, 0.35);
     const speedError = this.speed / 1.94384 - aircraft.airspeed;
     this.speedIntegral = clamp(this.speedIntegral + speedError * dt * 0.003, -0.35, 0.35);
-    const drag = qArea * (0.025 + 0.065 * liftCoefficient ** 2 + (aircraft.gear ? 0.035 : 0)
+    const drag = qArea * (aircraft.airframe.drag + 0.065 * liftCoefficient ** 2 + (aircraft.gear ? 0.035 : 0)
       + (aircraft.flaps ? 0.04 : 0) + Math.max(0, aircraft.airspeed - 290) * 0.0007);
-    const feedForward = (drag + mass * G * verticalTarget / aircraft.airspeed) / 85000;
+    const feedForward = (drag + mass * G * verticalTarget / aircraft.airspeed) / aircraft.airframe.thrust;
     aircraft.controls.throttle = clamp(feedForward + speedError * 0.025 + this.speedIntegral, 0, 1);
     aircraft.controls.brake = false;
   }

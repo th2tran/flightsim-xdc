@@ -52,6 +52,16 @@ try {
     assert.equal(await page.evaluate(() => window.testAudioContexts.length), 0, 'No audio before the launch gesture');
     if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: join(process.env.SCREENSHOT_DIR, `briefing-${viewport.width}.png`) });
     await page.getByRole('button', { name: /Flight school/ }).click();
+    const initialThumbnail = await page.locator('app-aircraft-preview canvas').screenshot();
+    const aircraftNames = ['F-14 Tomcat', 'F-15E Strike Eagle', 'F-22 Raptor', 'Northrop YF-23 Black Widow II'];
+    const selectedAircraft = aircraftNames[viewport.width === 1440 ? 0 : viewport.width === 844 ? 3 : viewport.height === 667 ? 2 : 1];
+    await page.getByRole('button', { name: selectedAircraft, exact: true }).click();
+    await page.waitForFunction(name => [...document.querySelectorAll('.aircraft-options button')]
+      .some(button => button.textContent.trim() === name && button.getAttribute('aria-pressed') === 'true'), selectedAircraft);
+    await page.getByRole('img', { name: `${selectedAircraft} aircraft preview`, exact: true }).waitFor();
+    const selectedThumbnail = await page.locator('app-aircraft-preview canvas').screenshot();
+    assert.equal(initialThumbnail.equals(selectedThumbnail), false, 'Aircraft selection must change the rendered thumbnail');
+    await page.getByRole('button', { name: 'F/A-27 Multirole', exact: true }).click();
     await page.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
     await page.locator('.modal-backdrop').waitFor({ state: 'hidden' });
     await page.waitForFunction(() => document.querySelector('.notification')?.textContent.includes('STEP 1/7'));
@@ -262,6 +272,23 @@ try {
   await blockedPage.getByText('Volume settings could not be saved in this host. Current volumes still apply.').waitFor();
   assert.equal(await blockedPage.getByRole('slider', { name: 'Music volume' }).inputValue(), '0');
   await blockedStorage.close();
+  const airframeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const airframePage = await airframeContext.newPage();
+  airframePage.on('pageerror', error => errors.push(error.message));
+  await airframePage.goto(url);
+  for (const [label, tag] of [
+    ['F-14 Tomcat', 'F-14'], ['F-15E Strike Eagle', 'F-15E'],
+    ['F-22 Raptor', 'F-22'], ['Northrop YF-23 Black Widow II', 'YF-23'],
+  ]) {
+    await airframePage.getByRole('button', { name: label, exact: true }).click();
+    await airframePage.getByRole('button', { name: /Flight school/ }).click();
+    await airframePage.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
+    await airframePage.waitForFunction(name => document.querySelector('.flight-info .tag')?.textContent === name, tag);
+    await airframePage.waitForTimeout(200);
+    assert.equal(await airframePage.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await airframePage.getByRole('button', { name: 'Open mission briefing' }).click();
+  }
+  await airframeContext.close();
   const unsupported = await browser.newContext();
   await unsupported.addInitScript(() => { window.AudioContext = undefined; });
   const silentPage = await unsupported.newPage();
