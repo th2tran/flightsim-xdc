@@ -50,6 +50,8 @@ Selection takes effect on the next launch; resuming an existing sortie keeps its
 | Wings-level recovery | R | AP settings, Wings Level |
 | Stall recovery | T | AP settings, Stall Recovery |
 
+The tactical radar shows home base, at the runway centre, as a blue square. When the base is outside the selected range, the square sits on the radar edge and is drawn dashed, pointing toward it. The HOME line below the radar gives the bearing and distance to base.
+
 Use the in-game **flight manual** for instrumentation, combat, and recovery instructions. Mobile landscape gives the widest view, but portrait layouts also include all flight controls. Losing focus or hiding the app releases held inputs without pausing the simulation or disconnecting autopilot. Use **P / Esc** or the pause button to pause explicitly. Browsers and webxdc hosts may throttle or suspend background animation and audio.
 
 Manual pitch uses a fighter-style fly-by-wire law (`src/app/sim/fly-by-wire.ts`) once airborne. Releasing the stick holds the current flight-path angle at any speed, with bank compensation up to 60°. Pitch input commands a flight-path rate of up to 0.20 rad/s nose up or 0.15 rad/s nose down, limited to +7.5/−3 g. Hands-off flight is held below the stall angle of attack. Sustained hard pulls at low speed or low thrust can still stall. On the ground, pitch input drives the elevator directly for rotation. The HUD shows the held flight-path angle (FPA HOLD).

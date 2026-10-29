@@ -1,6 +1,6 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, ViewChild } from '@angular/core';
 import { DecimalPipe, UpperCasePipe } from '@angular/common';
-import { Aircraft, clamp, Scenario, STEP } from './sim/flight';
+import { Aircraft, clamp, Scenario, STEP, terrainHeight } from './sim/flight';
 import { Combat } from './sim/combat';
 import { FlightRenderer, ScreenTarget } from './sim/renderer';
 import { FlightMusic } from './sim/music';
@@ -41,6 +41,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   flightPath = { x: 50, y: 50, visible: false };
   radar: { id: number; x: number; y: number; selected: boolean }[] = [];
   radarMissiles: { id: number; x: number; y: number; trail: string }[] = [];
+  radarBase = { x: 50, y: 50, pinned: false };
   readonly radarRanges = [3, 6, 12, 25];
   radarRangeIndex = 1;
   get radarRangeKm(): number { return this.radarRanges[this.radarRangeIndex]; }
@@ -370,6 +371,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   private updateRadar(): void {
     const inverse = this.aircraft.attitude.clone().invert();
+    const base = new Vector3(0, terrainHeight(0, 0), 0).sub(this.aircraft.position).applyQuaternion(inverse);
+    const baseRange = Math.hypot(base.x, base.z);
+    const baseScale = Math.max(this.radarRangeKm * 1000, baseRange);
+    this.radarBase = { x: 50 + base.x / baseScale * 43, y: 50 + base.z / baseScale * 43, pinned: baseRange > this.radarRangeKm * 1000 };
     this.radar = this.combat.alive.map(b => {
       const relative = b.position.clone().sub(this.aircraft.position).applyQuaternion(inverse);
       const scale = Math.max(this.radarRangeKm * 1000, Math.hypot(relative.x, relative.z));

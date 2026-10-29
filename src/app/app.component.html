@@ -124,6 +124,7 @@
         <path d="M6 50H94 M50 6V94 M19 19l62 62 M19 81l62-62" class="radar-grid"/>
         <path d="M50 50 22 16 A44 44 0 0 1 78 16Z" class="radar-cone"/>
         <path d="M50 45 53 54 50 52 47 54Z" class="radar-player"/>
+        <g [attr.transform]="'translate(' + radarBase.x + ' ' + radarBase.y + ')'" class="radar-base" [class.pinned]="radarBase.pinned" aria-hidden="true"><rect x="-2.6" y="-2.6" width="5.2" height="5.2"/><path d="M0-1.8V1.8"/></g>
         @for (contact of radar; track contact.id) {
           <path [attr.transform]="'translate(' + contact.x + ' ' + contact.y + ')'" d="M0-3 3 0 0 3-3 0Z" class="radar-contact" [class.chosen]="contact.selected"/>
         }
@@ -136,6 +137,7 @@
         <text x="50" y="5">N / FWD</text>
       </svg>
       <div class="radar-footer"><span>{{ combat.alive.length }} HOSTILE{{ combat.alive.length === 1 ? '' : 'S' }}</span><span [class.danger-text]="combat.incoming > 0">{{ combat.incoming ? 'MSL INBOUND' : 'RWR CLEAR' }}</span></div>
+      <div class="radar-footer radar-home"><span><i class="radar-home-icon"></i> HOME</span><span>{{ baseBearing }}° · {{ baseDistance }} KM</span></div>
     </div>
     <div class="panel target-panel">
       <div class="panel-heading"><span>TARGET TRACK</span><button (click)="target()" aria-label="Cycle target">NEXT ↗</button></div>

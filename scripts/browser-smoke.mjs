@@ -213,6 +213,8 @@ try {
     await page.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
     await page.waitForFunction(() => document.querySelectorAll('.radar-contact').length === 3);
     assert.equal(await page.locator('.radar-contact').count(), 3);
+    assert.equal(await page.locator('.radar-base').count(), 1, 'Radar must show home base');
+    assert.match(await page.locator('.radar-home').innerText(), /HOME\s+\d{3}° · \d+\.\d KM/);
     await page.locator('.radar-scope').click();
     assert.match(await page.locator('.radar-range').innerText(), /^12 KM/, 'Tapping the radar must zoom out');
     if (!mobile) {

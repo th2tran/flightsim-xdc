@@ -307,5 +307,10 @@ $accent: #edb272;
 .radar-range { background: none; border: 0; padding: 0; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; pointer-events: auto; }
 .radar-range kbd { font-size: .85em; opacity: .7; margin-left: 2px; }
 .radar-scope { cursor: pointer; pointer-events: auto; }
+.radar-base rect { fill: #5fb7ff33; stroke: #8fd0ff; stroke-width: .7; }
+.radar-base path { stroke: #8fd0ff; stroke-width: .7; }
+.radar-base.pinned rect { stroke-dasharray: 1.2 .8; fill: none; }
+.radar-footer.radar-home { margin-top: 3px; color: #8fd0ff; }
+.radar-home-icon { display: inline-block; width: .8em; height: .8em; border: 1px solid #8fd0ff; vertical-align: -.1em; }
 .radar-missile-trail { fill: none; stroke: #ff765f; stroke-width: 1.1; stroke-dasharray: 1.4 1.1; opacity: .8; }
 .radar-missile { fill: #ff654e; stroke: #ffd1a6; stroke-width: .7; filter: drop-shadow(0 0 1.6px #ff573d); }
