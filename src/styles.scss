@@ -314,3 +314,21 @@ $accent: #edb272;
 .radar-home-icon { display: inline-block; width: .8em; height: .8em; border: 1px solid #8fd0ff; vertical-align: -.1em; }
 .radar-missile-trail { fill: none; stroke: #ff765f; stroke-width: 1.1; stroke-dasharray: 1.4 1.1; opacity: .8; }
 .radar-missile { fill: #ff654e; stroke: #ffd1a6; stroke-width: .7; filter: drop-shadow(0 0 1.6px #ff573d); }
+
+// Touch controls overlap the instructor notification on tall phones; keep them see-through.
+.touch-mode {
+  .touch-right-controls .touch-target,
+  .rudder-buttons button,
+  .flight-stick {
+    background: transparent;
+  }
+
+  .stick-knob {
+    background: radial-gradient(circle, #334a4c66, #1b333d40);
+    box-shadow: none;
+  }
+
+  .notification {
+    text-shadow: 0 1px 2px #000, 0 0 6px #000c;
+  }
+}
