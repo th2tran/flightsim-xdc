@@ -8,6 +8,7 @@ export interface Bogey {
   forward: Vector3;
   health: number;
   cooldown: number;
+  drone?: boolean;
 }
 export interface Projectile {
   id: number;
@@ -17,6 +18,7 @@ export interface Projectile {
   life: number;
   target: number;
   decoyed: boolean;
+  damage?: number;
 }
 export interface Explosion {
   id: number;
@@ -39,6 +41,8 @@ export interface MissileStrike {
 const STRIKE_DURATION = 0.9;
 const AIRFRAME_RADII = new Vector3(6, 1.5, 10);
 const MISSILE_BLAST_DURATION = 2.2;
+const DRONE_SPEED = 110;
+const TRAINING_MISSILE_DAMAGE = 15;
 
 export function segmentClosestPoint(point: Vector3, start: Vector3, end: Vector3): Vector3 {
   const direction = end.clone().sub(start);
@@ -61,6 +65,9 @@ export class Combat {
   rounds = 640;
   flares = 24;
   kills = 0;
+  gunKills = 0;
+  missileKills = 0;
+  missilesDefeated = 0;
   time = 0;
   message = 'Flight systems ready';
   messageUntil = 5;
@@ -82,7 +89,8 @@ export class Combat {
     this.missiles = 6;
     this.rounds = 640;
     this.flares = 24;
-    this.kills = this.time = this.gunCooldown = this.flareCooldown = this.missileCooldown = 0;
+    this.kills = this.gunKills = this.missileKills = this.missilesDefeated = 0;
+    this.time = this.gunCooldown = this.flareCooldown = this.missileCooldown = 0;
     this.firing = false;
     const count = scenario === 'training' ? 0 : scenario === 'intercept' ? 3 : 5;
     for (let i = 0; i < count; i++) {
@@ -132,8 +140,38 @@ export class Combat {
     return true;
   }
 
-  private spawn(kind: Projectile['kind'], position: Vector3, velocity: Vector3, life: number, target: number): void {
-    this.projectiles.push({ id: this.nextId++, kind, position, velocity, life, target, decoyed: false });
+  /** Non-firing, straight-flying target for Flight School, placed ahead at a bearing offset from the nose. */
+  spawnTrainingDrone(aircraft: Aircraft, distance: number, offset: number): Bogey {
+    const heading = new Vector3(aircraft.forward.x, 0, aircraft.forward.z);
+    if (heading.lengthSq() < 0.001) heading.set(0, 0, -1);
+    heading.normalize();
+    const bearing = heading.clone().applyAxisAngle(new Vector3(0, 1, 0), -offset);
+    const position = aircraft.position.clone().addScaledVector(bearing, distance);
+    position.y = Math.max(position.y + 60, terrainHeight(position.x, position.z) + 400);
+    const drone: Bogey = {
+      id: this.nextId++, position, forward: heading, velocity: heading.clone().multiplyScalar(DRONE_SPEED),
+      health: 100, cooldown: Infinity, drone: true,
+    };
+    this.bogeys.push(drone);
+    if (!this.target) { this.selected = drone.id; this.lock = 0; }
+    return drone;
+  }
+
+  /** Reduced-damage hostile missile launched from behind for the Flight School flare drill. */
+  launchTrainingMissile(aircraft: Aircraft): void {
+    const heading = new Vector3(aircraft.forward.x, 0, aircraft.forward.z);
+    if (heading.lengthSq() < 0.001) heading.set(0, 0, -1);
+    heading.normalize();
+    const from = aircraft.position.clone()
+      .addScaledVector(heading.clone().applyAxisAngle(new Vector3(0, 1, 0), 2.4), 2800);
+    from.y = Math.max(aircraft.position.y, terrainHeight(from.x, from.z) + 200);
+    const velocity = aircraft.position.clone().sub(from).setLength(260);
+    this.spawn('hostile', from, velocity, 15, 0, TRAINING_MISSILE_DAMAGE);
+    this.notify('Missile warning! Deploy flares and break turn.', 4);
+  }
+
+  private spawn(kind: Projectile['kind'], position: Vector3, velocity: Vector3, life: number, target: number, damage?: number): void {
+    this.projectiles.push({ id: this.nextId++, kind, position, velocity, life, target, decoyed: false, damage });
   }
 
   private hit(bogey: Bogey, damage: number, missileImpact = false): void {
@@ -141,6 +179,8 @@ export class Combat {
     bogey.health -= damage;
     if (bogey.health <= 0) {
       this.kills++;
+      if (missileImpact) this.missileKills++;
+      else this.gunKills++;
       if (!missileImpact) {
         this.explosions.push({
           id: this.nextId++, position: bogey.position.clone(), life: 1.5, duration: 1.5, intensity: 1.15, kind: 'destroyed',
@@ -216,6 +256,12 @@ export class Combat {
     }
     for (const bogey of this.bogeys) {
       if (bogey.health <= 0) continue;
+      if (bogey.drone) {
+        bogey.velocity.copy(bogey.forward).multiplyScalar(DRONE_SPEED);
+        bogey.position.addScaledVector(bogey.velocity, dt);
+        bogey.position.y = Math.max(bogey.position.y, terrainHeight(bogey.position.x, bogey.position.z) + 200);
+        continue;
+      }
       const toPlayer = aircraft.position.clone().sub(bogey.position);
       const range = toPlayer.length();
       const pursuit = toPlayer.normalize();
@@ -248,7 +294,11 @@ export class Combat {
           const flare = this.projectiles.find(f => f.kind === 'flare' && f.life > 0.3
             && f.position.distanceTo(projectile.position) < 1600
             && f.position.distanceTo(aircraft.position) > 10);
-          if (flare) { projectile.decoyed = true; destination = flare.position; }
+          if (flare) {
+            if (!projectile.decoyed) this.missilesDefeated++;
+            projectile.decoyed = true;
+            destination = flare.position;
+          }
           else if (projectile.decoyed) destination = undefined;
         }
         const speed = Math.min(720, projectile.velocity.length() + dt * 120);
@@ -270,8 +320,9 @@ export class Combat {
         && segmentDistance(aircraft.position, start, projectile.position) < 22) {
         const impactPosition = segmentClosestPoint(aircraft.position, start, projectile.position);
         this.missileStrike('player', aircraft.position, aircraft.attitude, impactPosition, projectile.velocity, aircraft.velocity);
-        aircraft.health -= 42;
+        aircraft.health -= projectile.damage ?? 42;
         projectile.life = 0;
+        projectile.target = -1;
         this.explosions.push({
           id: this.nextId++, position: impactPosition, life: MISSILE_BLAST_DURATION,
           duration: MISSILE_BLAST_DURATION, intensity: 1, kind: 'missile',
@@ -302,6 +353,9 @@ export class Combat {
         }
       }
       if (projectile.position.y < terrainHeight(projectile.position.x, projectile.position.z)) projectile.life = 0;
+    }
+    for (const projectile of this.projectiles) {
+      if (projectile.kind === 'hostile' && projectile.life <= 0 && !projectile.decoyed && projectile.target !== -1) this.missilesDefeated++;
     }
     this.projectiles = this.projectiles.filter(p => p.life > 0);
     this.ageEffects(dt);

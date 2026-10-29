@@ -311,7 +311,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           if (explosion.kind === 'missile') this.sound.playImpact();
         }
         if (this.combat.rounds < roundsBefore) this.sound.playGun();
-        if (this.activeScenario === 'training') this.instructor.update(this.aircraft, this.autopilot, STEP);
+        if (this.activeScenario === 'training') this.instructor.update(this.aircraft, this.autopilot, STEP, this.combat);
         this.accumulator -= STEP;
         if (this.aircraft.phase === 'crashed') {
           this.autopilot.disengage();

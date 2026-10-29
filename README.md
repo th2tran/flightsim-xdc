@@ -58,13 +58,13 @@ Manual pitch uses a fighter-style fly-by-wire law (`src/app/sim/fly-by-wire.ts`)
 
 The touch stick has an 8% dead zone and a progressive response for fine pitch/roll adjustments near center, while retaining full authority at its edge. Sideways input commands roll, not a held bank angle: release to stop rolling and apply opposite input to level the wings. Passive directional stability opposes sideslip during manual flight as well as autopilot flight.
 
-**Flight School** displays step-by-step instructor guidance in the existing notification area. Keyboard/touch lessons advance as you pitch up, level off, bank, roll out and adjust thrust, followed by a 12-second instrument scan and an automatic landing demonstration. Instructions stay visible until the maneuver is performed, with contextual guidance for takeoff, configuration cleanup, stalls, low approaches, automatic flight and landing. Aircraft/action notifications temporarily take priority; guidance returns when they expire. Pausing freezes lesson progress, and a new sortie resets it. Other scenarios retain their normal communications.
+**Flight School** displays step-by-step instructor guidance in the existing notification area. Keyboard/touch lessons advance as you pitch up, level off, bank, roll out and adjust thrust, followed by a 12-second instrument scan, a return-and-land lesson (AP > Return & Land demonstrates it) and a second departure. Five combat drills follow against unarmed training drones: radar lock, a guns kill, a missile kill and defeating a reduced-damage training missile with flares. Ammunition, missiles and flares are replenished during drills, and using the wrong weapon relaunches the drone. Completing all 12 steps graduates the cadet. Instructions stay visible until the maneuver is performed, with contextual guidance for takeoff, configuration cleanup, stalls, low approaches, automatic flight and landing. Aircraft/action notifications temporarily take priority; guidance returns when they expire. Pausing freezes lesson progress, and a new sortie resets it. Other scenarios retain their normal communications.
 
-Corrective instructions interrupt lessons for stalls, low descending flight, steep bank, excessive pitch/sink/speed, low airspeed, gear-down overspeed and accelerating against brakes. They explain how to recover using the current input device; lesson progress waits until the unsafe condition is corrected.
+Corrective instructions interrupt lessons for stalls, low descending flight, steep bank, excessive pitch/sink/speed, low airspeed, gear-down overspeed and accelerating against brakes. They explain how to recover using the current input device; lesson progress waits until the unsafe condition is corrected. Bank, pitch and sink-rate corrections are relaxed during combat drills so you can manoeuvre aggressively.
 
 ### Sorties
 
-- **Flight school:** no enemies; practice flight, stalls, takeoff, and landing.
+- **Flight school:** no hostile fighters; 12 guided steps covering flight, landing, departure and combat drills against training drones.
 - **Coastal intercept:** three armed bogeys, deliberate missile cadence.
 - **Overwhelming odds:** five faster bogeys with more frequent missile attacks.
 

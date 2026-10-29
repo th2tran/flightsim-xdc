@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
 import { Aircraft } from './flight';
 import { Autopilot } from './autopilot';
-import { FlightInstructor } from './guidance';
+import { Combat } from './combat';
+import { FlightInstructor, LESSON_COUNT } from './guidance';
 
 describe('Flight School instructor', () => {
   it('waits for each maneuver, advances in order and resets', () => {
@@ -12,30 +13,30 @@ describe('Flight School instructor', () => {
     instructor.reset(aircraft);
     const text = () => instructor.guidance(aircraft, ap, false);
     instructor.update(aircraft, ap, 20);
-    expect(text()).toContain('STEP 1/7');
+    expect(text()).toContain('STEP 1/12');
     expect(instructor.guidance(aircraft, ap, true)).toContain('stick down');
     aircraft.attitude.setFromAxisAngle(new Vector3(1, 0, 0), 0.1);
     aircraft.controls.pitch = 0.2;
     instructor.update(aircraft, ap, 0.5);
-    expect(text()).toContain('STEP 2/7');
+    expect(text()).toContain('STEP 2/12');
     aircraft.attitude.identity();
     instructor.update(aircraft, ap, 0.5);
-    expect(text()).toContain('STEP 3/7');
+    expect(text()).toContain('STEP 3/12');
     aircraft.attitude.setFromAxisAngle(new Vector3(0, 0, 1), -0.2);
     instructor.update(aircraft, ap, 0.5);
-    expect(text()).toContain('STEP 4/7');
+    expect(text()).toContain('STEP 4/12');
     aircraft.attitude.copy(new Quaternion());
     instructor.update(aircraft, ap, 0.5);
-    expect(text()).toContain('STEP 5/7');
+    expect(text()).toContain('STEP 5/12');
     aircraft.controls.throttle += 0.1;
     instructor.update(aircraft, ap, 0.5);
-    expect(text()).toContain('STEP 6/7');
+    expect(text()).toContain('STEP 6/12');
     instructor.update(aircraft, ap, 11);
-    expect(text()).toContain('STEP 6/7');
+    expect(text()).toContain('STEP 6/12');
     instructor.update(aircraft, ap, 1);
-    expect(text()).toContain('STEP 7/7');
+    expect(text()).toContain('STEP 7/12');
     instructor.reset(aircraft);
-    expect(text()).toContain('STEP 1/7');
+    expect(text()).toContain('STEP 1/12');
   });
 
   it('prioritizes ground, stall, automatic-flight and landing guidance', () => {
@@ -60,7 +61,7 @@ describe('Flight School instructor', () => {
     ap.disengage();
     aircraft.position.y = 1100;
     aircraft.gear = aircraft.flaps = false;
-    expect(text()).toContain('STEP 1/7');
+    expect(text()).toContain('STEP 1/12');
     aircraft.phase = 'landed';
     expect(text()).toContain('Landing complete');
     aircraft.phase = 'crashed';
@@ -78,7 +79,7 @@ describe('Flight School instructor', () => {
     instructor.update(aircraft, ap, 10);
     expect(text()).toContain('Nose high');
     aircraft.attitude.identity();
-    expect(text()).toContain('STEP 1/7');
+    expect(text()).toContain('STEP 1/12');
     aircraft.attitude.setFromAxisAngle(new Vector3(0, 0, 1), -0.8);
     expect(text()).toContain('Bank too steep');
     aircraft.attitude.identity();
@@ -95,5 +96,89 @@ describe('Flight School instructor', () => {
     aircraft.controls.brake = true;
     expect(text()).toContain('Release B');
     expect(instructor.guidance(aircraft, ap, true)).toContain('Release BRAKE');
+  });
+
+  it('graduates the cadet through landing, departure and combat drills', () => {
+    const aircraft = new Aircraft();
+    const ap = new Autopilot();
+    const combat = new Combat();
+    const instructor = new FlightInstructor();
+    combat.reset('training', aircraft);
+    instructor.reset(aircraft);
+    const text = () => instructor.guidance(aircraft, ap, false);
+    aircraft.attitude.setFromAxisAngle(new Vector3(1, 0, 0), 0.1);
+    aircraft.controls.pitch = 0.2;
+    instructor.update(aircraft, ap, 0.5, combat);
+    aircraft.attitude.identity();
+    instructor.update(aircraft, ap, 0.5, combat);
+    aircraft.attitude.setFromAxisAngle(new Vector3(0, 0, 1), -0.2);
+    instructor.update(aircraft, ap, 0.5, combat);
+    aircraft.attitude.identity();
+    instructor.update(aircraft, ap, 0.5, combat);
+    aircraft.controls.throttle += 0.1;
+    instructor.update(aircraft, ap, 0.5, combat);
+    instructor.update(aircraft, ap, 12, combat);
+    expect(text()).toContain('STEP 7/12');
+    instructor.update(aircraft, ap, 60, combat);
+    expect(text()).toContain('STEP 7/12');
+    aircraft.phase = 'landed';
+    instructor.update(aircraft, ap, 0.1, combat);
+    expect(text()).toContain('STEP 8/12 - Depart again');
+    aircraft.phase = 'airborne';
+    aircraft.gear = true;
+    aircraft.airspeed = 140;
+    instructor.update(aircraft, ap, 1, combat);
+    expect(text()).toContain('STEP 8/12');
+    aircraft.gear = false;
+    aircraft.airspeed = 165;
+    instructor.update(aircraft, ap, 0.5, combat);
+    expect(text()).toContain('STEP 9/12');
+    expect(combat.bogeys).toHaveLength(0);
+
+    const dt = 1 / 60;
+    const forward = new Vector3(0, 0, -1);
+    const seen = new Set<string>();
+    for (let i = 0; i < 60 * 240 && !instructor.graduated; i++) {
+      const drone = combat.target;
+      if (drone) {
+        const toDrone = drone.position.clone().sub(aircraft.position);
+        aircraft.attitude.slerp(new Quaternion().setFromUnitVectors(new Vector3(0, 0, -1), toDrone.clone().normalize()), dt * 1.5);
+        combat.firing = instructor.lesson === 9 && toDrone.length() < 900;
+        if (instructor.lesson === 10 && combat.lock >= 1) combat.launch(aircraft);
+      } else combat.firing = false;
+      const threat = combat.projectiles.find(projectile => projectile.kind === 'hostile' && !projectile.decoyed);
+      if (threat && threat.position.distanceTo(aircraft.position) < 1400) combat.releaseFlares(aircraft);
+      aircraft.velocity.copy(forward).applyQuaternion(aircraft.attitude).multiplyScalar(180);
+      aircraft.position.addScaledVector(aircraft.velocity, dt);
+      combat.step(dt, aircraft);
+      instructor.update(aircraft, ap, dt, combat);
+      seen.add(text().slice(0, 10));
+    }
+    expect(instructor.graduated).toBe(true);
+    expect(instructor.lesson).toBe(LESSON_COUNT);
+    expect([...seen]).toEqual(expect.arrayContaining(['STEP 9/12 ', 'STEP 10/12', 'STEP 11/12', 'STEP 12/12']));
+    expect(combat.gunKills).toBeGreaterThanOrEqual(1);
+    expect(combat.missileKills).toBeGreaterThanOrEqual(1);
+    expect(combat.missilesDefeated).toBeGreaterThanOrEqual(1);
+    expect(aircraft.health).toBe(100);
+    expect(text()).toContain('FLIGHT SCHOOL COMPLETE');
+  });
+
+  it('relaunches drills when the wrong weapon is used or the missile hits', () => {
+    const aircraft = new Aircraft();
+    const combat = new Combat();
+    combat.reset('training', aircraft);
+    const drone = combat.spawnTrainingDrone(aircraft, 2500, 0);
+    expect(drone.drone).toBe(true);
+    expect(combat.target?.id).toBe(drone.id);
+    const before = drone.position.clone();
+    combat.step(1, aircraft);
+    expect(drone.position.distanceTo(before)).toBeCloseTo(110, 0);
+    expect(combat.incoming).toBe(0);
+    combat.launchTrainingMissile(aircraft);
+    expect(combat.incoming).toBe(1);
+    for (let i = 0; i < 60 * 15 && combat.incoming; i++) combat.step(1 / 60, aircraft);
+    expect(aircraft.health).toBe(85);
+    expect(combat.missilesDefeated).toBe(0);
   });
 });

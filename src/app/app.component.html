@@ -200,7 +200,7 @@
           <p class="aircraft-description">{{ selectedAirframe.description }}</p>
           <div class="section-label"><span>SELECT YOUR SORTIE</span><span>{{ selectedAirframe.name }}</span></div>
           <div class="scenario-grid">
-            <button class="scenario-card" [class.chosen]="scenario === 'training'" (click)="scenario = 'training'"><span class="card-number">01 <small>ORIENTATION</small></span><span class="card-symbol">◎</span><strong>Flight school</strong><p>Learn the aircraft. Fly the pattern. Make it home.</p><span class="card-footer">NO HOSTILES <b>FREE FLIGHT ↗</b></span></button>
+            <button class="scenario-card" [class.chosen]="scenario === 'training'" (click)="scenario = 'training'"><span class="card-number">01 <small>ORIENTATION</small></span><span class="card-symbol">◎</span><strong>Flight school</strong><p>Learn the aircraft. Fly the pattern. Make it home.</p><span class="card-footer">TRAINING DRONES <b>12 STEPS ↗</b></span></button>
             <button class="scenario-card" [class.chosen]="scenario === 'intercept'" (click)="scenario = 'intercept'"><span class="card-number">02 <small>STANDARD</small></span><span class="card-symbol">⌖</span><strong>Coastal intercept</strong><p>Three bandits inbound. Intercept and secure the airspace.</p><span class="card-footer">3 HOSTILES <b>AIR TO AIR ↗</b></span></button>
             <button class="scenario-card" [class.chosen]="scenario === 'furball'" (click)="scenario = 'furball'"><span class="card-number">03 <small>HIGH THREAT</small></span><span class="card-symbol">⋔</span><strong>Overwhelming odds</strong><p>Five agile adversaries. Watch your six. Stay alive.</p><span class="card-footer">5 HOSTILES <b>DOGFIGHT ↗</b></span></button>
           </div>

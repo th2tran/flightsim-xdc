@@ -64,7 +64,7 @@ try {
     await page.getByRole('button', { name: 'F/A-27 Multirole', exact: true }).click();
     await page.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
     await page.locator('.modal-backdrop').waitFor({ state: 'hidden' });
-    await page.waitForFunction(() => document.querySelector('.notification')?.textContent.includes('STEP 1/7'));
+    await page.waitForFunction(() => document.querySelector('.notification')?.textContent.includes('STEP 1/12'));
     assert.match(await page.locator('.notification').innerText(), mobile ? /stick down/ : /Down \/ S/);
     await page.waitForFunction(() => window.testAudioSources.some(source => source.buffer?.duration > 40 && source.loop));
     const signal = await page.evaluate(() => {
