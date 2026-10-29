@@ -7,6 +7,27 @@ function advance(plane: Aircraft, seconds: number): void {
 }
 
 describe('six-degree-of-freedom flight', () => {
+  it.each([-0.1, 0.1])('damps sideslip after a %f roll pulse without autopilot', roll => {
+    const plane = new Aircraft();
+    for (let i = 0; i < 120 * 20; i++) {
+      plane.controls.roll = i < 60 ? roll : 0;
+      plane.step(STEP);
+      expect(plane.stalled).toBe(false);
+      expect(Math.abs(plane.beta)).toBeLessThan(0.1);
+      expect(Math.abs(plane.bank)).toBeLessThan(0.5);
+    }
+    expect(Math.abs(plane.rates.z)).toBeLessThan(0.02);
+  });
+
+  it.each([-10, 10])('opposes an initial %i m/s sideways velocity', sideways => {
+    const plane = new Aircraft();
+    plane.velocity.x = sideways;
+    plane.step(STEP);
+    expect(Math.sign(plane.rates.y)).toBe(-Math.sign(plane.beta));
+    advance(plane, 10);
+    expect(Math.abs(plane.beta)).toBeLessThan(0.01);
+    expect(plane.stalled).toBe(false);
+  });
   it('initializes a plausible airborne state and maintains normalized attitude', () => {
     const plane = new Aircraft();
     advance(plane, 20);

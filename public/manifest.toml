@@ -1,4 +1,4 @@
 name = "Afterburner"
 description = "Offline fighter flight simulator with six-degree-of-freedom flight and combat."
 icon = "icon.png"
-version = "0.1.0+3"
+version = "0.1.0+6"

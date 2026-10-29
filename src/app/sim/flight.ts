@@ -152,7 +152,7 @@ export class Aircraft {
     const authority = q * area * 3;
     const pitchTorque = authority * (0.8 * (0.035 - this.alpha)
       + this.surfaces.elevator * 0.95 - this.rates.x * 2.6 / Math.max(speed, 40));
-    const yawTorque = q * area * 10 * (0.20 * this.beta
+    const yawTorque = q * area * 10 * (-0.20 * this.beta
       - this.surfaces.rudder * 0.13 - this.rates.y * 3 / Math.max(speed, 40));
     const rollTorque = q * area * 10 * (-this.surfaces.aileron * 0.13
       - this.rates.z * 2.3 / Math.max(speed, 40));

@@ -1,7 +1,7 @@
 {
   "name": "afterburner-xdc",
-  "version": "0.1.0+3",
-  "description": "Afterburner: an offline Angular 22 webxdc fighter flight simulator",
+  "version": "0.1.0+6",
+  "description": "Afterburner: an offline Web-XDC fighter flight simulator",
   "license": "MIT",
   "author": "",
   "type": "module",

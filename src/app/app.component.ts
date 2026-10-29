@@ -8,6 +8,7 @@ import { FlightSound } from './sim/sound';
 import { flightWarning, WARNING_LABELS } from './sim/warnings';
 import { Autopilot } from './sim/autopilot';
 import { FlightInstructor } from './sim/guidance';
+import { stickResponse } from './sim/controls';
 
 @Component({
   selector: 'app-root',
@@ -276,8 +277,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const held = (code: string): number => this.keys.has(code) ? 1 : 0;
     const pitch = held('ArrowDown') + held('KeyS') - held('ArrowUp') - held('KeyW');
     const roll = held('ArrowRight') + held('KeyD') - held('ArrowLeft') - held('KeyA');
-    this.aircraft.controls.pitch = clamp(pitch + this.stickY, -1, 1);
-    this.aircraft.controls.roll = clamp(roll + this.stickX, -1, 1);
+    this.aircraft.controls.pitch = clamp(pitch + stickResponse(this.stickY), -1, 1);
+    this.aircraft.controls.roll = clamp(roll + stickResponse(this.stickX), -1, 1);
     this.aircraft.controls.yaw = clamp(held('KeyE') - held('KeyQ') + this.rudder, -1, 1);
     this.aircraft.controls.throttle = clamp(this.aircraft.controls.throttle + (held('ShiftLeft') + held('ShiftRight') - held('ControlLeft') - held('ControlRight')) * dt * 0.30, 0, 1);
     this.aircraft.controls.brake = this.keys.has('KeyB');
