@@ -74,7 +74,7 @@ Every sortie can begin airborne or on runway 36. Loadout: six infrared missiles,
 
 The fixed **120 Hz six-degree-of-freedom rigid body** integrates three translational and three rotational degrees of freedom, with quaternion attitude and Euler gyroscopic coupling. Body axes: +X right, +Y up, -Z forward. Forces include altitude-dependent density, angle-of-attack lift and stall loss, induced/parasitic/configuration drag, sideslip, gravity, throttle/afterburner thrust, fuel consumption, and ground friction/brakes. Elevator, aileron, and rudder have response lag and drive aerodynamic moments; visible surfaces are mapped to the same deflections. This is a plausible, simplified fictional fighter, **not an F/A-18 performance model, certified trainer, or CFD simulator**.
 
-The primary display includes true airspeed (not calibrated/indicated airspeed), MSL and terrain-relative altitude, heading, pitch ladder, bank arc, vertical speed, G, angle of attack, and velocity vector. A gridded landscape, hills, procedural clouds, a marked 3.2 km runway, airbase buildings, radar, and RTB distance/bearing provide spatial references. Calm conditions mean ground speed equals true airspeed.
+The primary display includes true airspeed (not calibrated/indicated airspeed), MSL and terrain-relative altitude, heading, pitch ladder, bank arc, vertical speed, G, angle of attack, and velocity vector. Procedurally shaded terrain (patchwork farmland with hedgerows around the airfield, woodland with instanced trees, rocky slopes, valley lakes, distance haze), a gradient sky with sun glow, volumetric-style cumulus clouds, a marked 3.2 km runway, airbase buildings, radar, and RTB distance/bearing provide spatial references. Calm conditions mean ground speed equals true airspeed.
 
 Takeoff/landing states are `parked → takeoff → airborne → landed`, with repeat departures supported. Safe touchdown requires gear down, a position inside the runway, sink rate below 5.5 m/s, bank below 0.18 rad, and pitch between -0.07 and 0.30 rad. Gear-up impacts, off-runway contact, or an exceeded landing envelope destroy the aircraft. Takeoff and landing can be flown manually or by the optional autopilot; stalls, excessive speed, fuel exhaustion, and enemy damage have consequences.
 
@@ -83,6 +83,7 @@ Takeoff/landing states are `parked → takeoff → airborne → landed`, with re
 ## Project layout
 
 - `src/app/sim/flight.ts`: aircraft physics, control mapping, terrain and runway logic.
+- `src/app/sim/scenery.ts`: procedural terrain shading, trees, sky dome and clouds (visual only).
 - `src/app/sim/autopilot.ts`: physics-driven hold, wings-level/stall recovery, automatic departure, return navigation, approach, flare, rollout and go-around.
 - `src/app/sim/combat.ts`: bogey AI, target lock, weapons, countermeasures, damage.
 - `src/app/sim/renderer.ts`: Three.js world, aircraft, camera, effects and projections.

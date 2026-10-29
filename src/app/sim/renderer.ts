@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { Aircraft, clamp, terrainHeight } from './flight';
+import { Aircraft, clamp } from './flight';
 import { Combat, MissileStrike } from './combat';
 import { AIRFRAMES } from './airframes';
 import { makeJet } from './jet-model';
+import { SKY_HORIZON, createClouds, createSky, createTerrain, createTrees } from './scenery';
 export { makeJet } from './jet-model';
 
 export interface ScreenTarget { id: number; x: number; y: number; visible: boolean; selected: boolean; range: number; }
@@ -56,22 +57,24 @@ export class FlightRenderer {
   };
   private readonly resizeObserver: ResizeObserver;
   private readonly cameraPosition = new THREE.Vector3();
+  private readonly sky = createSky();
   private lostHandler: (event: Event) => void;
 
   constructor(private canvas: HTMLCanvasElement, onContextLost: () => void) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth < 800 ? 1.25 : 1.6));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.setClearColor(0xa6c8d2);
-    this.scene.background = new THREE.Color(0xa6c8d2);
-    this.scene.fog = new THREE.FogExp2(0xa6c8d2, 0.000035);
+    this.renderer.setClearColor(SKY_HORIZON);
+    this.scene.background = new THREE.Color(SKY_HORIZON);
+    this.scene.fog = new THREE.FogExp2(SKY_HORIZON, 0.000035);
+    this.scene.add(this.sky);
     this.scene.add(new THREE.HemisphereLight(0xd9f4ff, 0x4c5a36, 2.4));
     const sun = new THREE.DirectionalLight(0xffe6bc, 3);
     sun.position.set(-5000, 9000, -6000);
     this.scene.add(sun);
-    this.createTerrain();
+    this.scene.add(createTerrain(), createTrees());
     this.createAirbase();
-    this.createClouds();
+    this.scene.add(createClouds());
     this.scene.add(this.player);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
@@ -88,30 +91,6 @@ export class FlightRenderer {
     this.camera.setViewOffset(width, height, 0, height * (0.5 - hudCenter), width, height);
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
-  }
-
-  private createTerrain(): void {
-    const geometry = new THREE.PlaneGeometry(80000, 80000, 180, 180);
-    geometry.rotateX(-Math.PI / 2);
-    const vertices = geometry.attributes['position'];
-    const colors = new Float32Array(vertices.count * 3);
-    const color = new THREE.Color();
-    for (let i = 0; i < vertices.count; i++) {
-      const x = vertices.getX(i), z = vertices.getZ(i);
-      const height = terrainHeight(x, z);
-      vertices.setY(i, height - 0.1);
-      const patch = Math.sin(x / 550) * Math.cos(z / 650);
-      color.setHSL(0.20 + patch * 0.025, 0.17 + patch * 0.05, 0.27 + height / 3500 + patch * 0.035);
-      colors.set([color.r, color.g, color.b], i * 3);
-    }
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.computeVertexNormals();
-    this.scene.add(new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })));
-    const grid = new THREE.GridHelper(6000, 60, 0x7f8b71, 0x7f8b71);
-    grid.position.y = 0.15;
-    grid.material.transparent = true;
-    grid.material.opacity = 0.20;
-    this.scene.add(grid);
   }
 
   private box(w: number, h: number, d: number, x: number, y: number, z: number, color: number): THREE.Mesh {
@@ -165,19 +144,6 @@ export class FlightRenderer {
     mesh.position.set(0, 0.24, z);
     mesh.rotation.y = rotation;
     this.scene.add(mesh);
-  }
-
-  private createClouds(): void {
-    const geometry = new THREE.IcosahedronGeometry(1, 1);
-    const cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xe1e9e5, transparent: true, opacity: 0.45, depthWrite: false });
-    for (let i = 0; i < 36; i++) {
-      const angle = i * 2.39996;
-      const radius = 8500 + (i % 7) * 2500;
-      const cloud = new THREE.Mesh(geometry, cloudMaterial);
-      cloud.position.set(Math.cos(angle) * radius, 4200 + (i % 4) * 500, Math.sin(angle) * radius);
-      cloud.scale.set(1600 + (i % 3) * 600, 170, 700);
-      this.scene.add(cloud);
-    }
   }
 
   get acquisitionRadius(): number {
@@ -292,6 +258,7 @@ export class FlightRenderer {
       .applyQuaternion(aircraft.attitude).add(aircraft.position);
     this.camera.position.copy(this.cameraPosition);
     this.camera.quaternion.copy(aircraft.attitude);
+    this.sky.position.copy(this.cameraPosition);
     const active = new Set<number>();
     const burningBogeys = new Set<number>();
     for (const strike of combat.strikes) {
@@ -392,6 +359,7 @@ export class FlightRenderer {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         for (const mat of materials) {
           if (mat instanceof THREE.MeshBasicMaterial || mat instanceof THREE.MeshStandardMaterial) mat.map?.dispose();
+          if (mat instanceof THREE.ShaderMaterial) (mat.uniforms['map']?.value as THREE.Texture | null)?.dispose();
           mat.dispose();
         }
       }
