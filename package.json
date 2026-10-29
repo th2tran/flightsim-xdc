@@ -1,12 +1,12 @@
 {
   "name": "machstrike-xdc",
-  "version": "0.3.0+26",
+  "version": "0.3.0+30",
   "description": "MachStrike: A Web-XDC fighter jet simulator",
   "license": "MIT",
   "author": "",
   "type": "module",
   "scripts": {
-    "start": "ng build && node scripts/package.mjs && node scripts/preview.mjs",
+    "start": "ng build --configuration development && node scripts/package.mjs --debug && node scripts/preview.mjs",
     "preview": "node scripts/preview.mjs",
     "prebuild": "node scripts/bump-build.mjs",
     "build": "ng build && node scripts/package.mjs",

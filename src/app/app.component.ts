@@ -8,6 +8,7 @@ import { FlightSound } from './sim/sound';
 import { flightWarning, WARNING_LABELS } from './sim/warnings';
 import { Autopilot } from './sim/autopilot';
 import { FlightInstructor } from './sim/guidance';
+import { FlyByWire } from './sim/fly-by-wire';
 import { stickResponse } from './sim/controls';
 import { AIRFRAMES } from './sim/airframes';
 import { AircraftPreviewComponent } from './aircraft-preview.component';
@@ -72,6 +73,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private stickPointer: number | null = null;
   private stickElement: HTMLElement | null = null;
   private rudder = 0;
+  readonly flyByWire = new FlyByWire();
   private rudderPointer: number | null = null;
   private rudderElement: HTMLElement | null = null;
   private gunPointer: number | null = null;
@@ -109,6 +111,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   get aglFeet(): number { return Math.max(0, this.aircraft.agl * 3.28084); }
   get vsi(): number { return this.aircraft.verticalSpeed * 196.85; }
   get bankDegrees(): number { return this.aircraft.bank * 180 / Math.PI; }
+  get stickKnobX(): number { return clamp(this.keyAxis('ArrowRight', 'KeyD', 'ArrowLeft', 'KeyA') + this.stickX, -1, 1); }
+  get stickKnobY(): number { return clamp(this.keyAxis('ArrowDown', 'KeyS', 'ArrowUp', 'KeyW') + this.stickY, -1, 1); }
+  get heldPathLabel(): string { const degrees = Math.round(this.flyByWire.heldPath * 180 / Math.PI); return `${degrees > 0 ? '+' : ''}${degrees}°`; }
   get pitchDegrees(): number { return this.aircraft.pitch * 180 / Math.PI; }
   get heading(): string { return Math.round(this.aircraft.heading).toString().padStart(3, '0'); }
   headingMark(offset: number): string {
@@ -151,6 +156,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.releaseControls();
     this.aircraft.airframe = this.selectedAirframe;
     this.aircraft.reset(this.runwayStart);
+    this.flyByWire.capture(this.aircraft);
     this.instructor.reset(this.aircraft);
     this.autopilot.disengage();
     this.activeScenario = this.scenario;
@@ -327,18 +333,25 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.animation = requestAnimationFrame(this.frame);
   };
 
+  private keyAxis(positive: string, positiveAlt: string, negative: string, negativeAlt: string): number {
+    const held = (code: string): number => this.keys.has(code) ? 1 : 0;
+    return held(positive) + held(positiveAlt) - held(negative) - held(negativeAlt);
+  }
+
   private updateControls(dt: number): void {
     const held = (code: string): number => this.keys.has(code) ? 1 : 0;
-    const pitch = held('ArrowDown') + held('KeyS') - held('ArrowUp') - held('KeyW');
-    const roll = held('ArrowRight') + held('KeyD') - held('ArrowLeft') - held('KeyA');
-    this.aircraft.controls.pitch = clamp(pitch + stickResponse(this.stickY), -1, 1);
+    const pitch = this.keyAxis('ArrowDown', 'KeyS', 'ArrowUp', 'KeyW');
+    const roll = this.keyAxis('ArrowRight', 'KeyD', 'ArrowLeft', 'KeyA');
+    const pilotPitch = clamp(pitch + stickResponse(this.stickY), -1, 1);
+    if (this.autopilot.active) this.flyByWire.capture(this.aircraft);
+    this.aircraft.controls.pitch = this.flyByWire.command(this.aircraft, pilotPitch);
     this.aircraft.controls.roll = clamp(roll + stickResponse(this.stickX), -1, 1);
     this.aircraft.controls.yaw = clamp(held('KeyE') - held('KeyQ') + this.rudder, -1, 1);
     this.aircraft.controls.throttle = clamp(this.aircraft.controls.throttle + (held('ShiftLeft') + held('ShiftRight') - held('ControlLeft') - held('ControlRight')) * dt * 0.30, 0, 1);
     this.aircraft.controls.brake = this.keys.has('KeyB');
     this.combat.firing = this.keys.has('Space') || this.gunPointer !== null;
     const throttleInput = ['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight'].some(code => this.keys.has(code));
-    if (Math.abs(this.aircraft.controls.pitch) > 0.02 || Math.abs(this.aircraft.controls.roll) > 0.02
+    if (Math.abs(pilotPitch) > 0.02 || Math.abs(this.aircraft.controls.roll) > 0.02
       || Math.abs(this.aircraft.controls.yaw) > 0.02 || throttleInput || this.aircraft.controls.brake) {
       this.disconnectAutopilot('Autopilot disconnected: manual flight-control override.');
     }
@@ -395,12 +408,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   keyDown(event: KeyboardEvent): void {
     if (event.altKey || event.metaKey || event.target instanceof HTMLInputElement) return;
-    const flightKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space', 'KeyB', 'KeyM', 'KeyF', 'KeyG', 'KeyL', 'KeyV', 'KeyP', 'KeyH', 'KeyR', 'KeyT', 'Tab', 'Escape'];
+    const flightKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space', 'KeyB', 'KeyM', 'KeyF', 'KeyG', 'KeyL', 'KeyV', 'KeyP', 'KeyH', 'KeyR', 'KeyT', 'BracketLeft', 'BracketRight', 'Backslash', 'Tab', 'Escape'];
     if (!flightKeys.includes(event.code)) return;
     event.preventDefault();
     if (event.code === 'Escape' && !event.repeat) { if (this.help) this.help = false; else if (this.menu && this.started) this.resume(); else this.togglePause(); return; }
     if (event.code === 'KeyP' && !event.repeat) { this.togglePause(); return; }
     if (!this.running) return;
+    if (event.code === 'BracketLeft' || event.code === 'BracketRight' || event.code === 'Backslash') { this.adjustHeldPath(event.code); return; }
     this.keys.add(event.code);
     if (event.repeat) return;
     switch (event.code) {
@@ -414,6 +428,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       case 'KeyR': this.engageAutopilot(true); break;
       case 'KeyT': this.engageStallRecovery(); break;
     }
+  }
+
+  private adjustHeldPath(code: string): void {
+    if (this.aircraft.phase !== 'airborne') return;
+    this.disconnectAutopilot('Autopilot disconnected: manual flight-path trim.');
+    if (code === 'Backslash') this.flyByWire.heldPath = 0;
+    else this.flyByWire.adjustHeldPath((code === 'BracketRight' ? 1 : -1) * Math.PI / 180);
   }
 
   @HostListener('window:keyup', ['$event'])

@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-`npm start` builds the app and launches **`@webxdc/webxdc-dev`**, serving `dist/machstrike-<version>.xdc` in the chat-host simulator (default UI: `http://localhost:7000`). Restart it after source changes; this deliberately previews the actual packaged production app rather than `ng serve`. `npm start` reuses the current build version without incrementing it. Use `npm start -- --open` to open the simulator automatically, or `npx webxdc-dev run --help` to inspect runner options. `npm run preview -- --port 7450` serves the current version without rebuilding or incrementing it.
+`npm start` builds the app and launches **`@webxdc/webxdc-dev`**, serving `dist/machstrike-<version>.xdc` in the chat-host simulator (default UI: `http://localhost:7000`). Restart it after source changes; this deliberately previews the actual packaged app rather than `ng serve`. `npm start` packages an unoptimized development build with source maps for debugging, and reuses the current build version without incrementing it. Use `npm start -- --open` to open the simulator automatically, or `npx webxdc-dev run --help` to inspect runner options. `npm run preview -- --port 7450` serves the current version without rebuilding or incrementing it.
 
 ```sh
 npm test             # flight dynamics, landing states, and combat regression tests
@@ -36,6 +36,7 @@ Selection takes effect on the next launch; resuming an existing sortie keeps its
 | Pitch | Down / S pulls up; Up / W pushes down | Drag stick down to pull up |
 | Roll | Left / A; Right / D | Drag stick sideways |
 | Rudder / nosewheel | Q / E | Yaw pedals |
+| Flight-path trim | [ / ] lower / raise the held flight path 1° (hold to repeat); \ levels it | — |
 | Throttle | Hold Shift / Ctrl, or use slider | Throttle slider |
 | Gear / flaps | G / L | Gear / flaps buttons |
 | Wheel brakes | Hold B | Hold BRAKE |
@@ -49,6 +50,8 @@ Selection takes effect on the next launch; resuming an existing sortie keeps its
 | Stall recovery | T | AP settings, Stall Recovery |
 
 Use the in-game **flight manual** for instrumentation, combat, and recovery instructions. Mobile landscape gives the widest view, but portrait layouts also include all flight controls. Losing focus or hiding the app releases held inputs without pausing the simulation or disconnecting autopilot. Use **P / Esc** or the pause button to pause explicitly. Browsers and webxdc hosts may throttle or suspend background animation and audio.
+
+Manual pitch uses a fighter-style fly-by-wire law (`src/app/sim/fly-by-wire.ts`) once airborne. Releasing the stick holds the current flight-path angle at any speed, with bank compensation up to 60°. Pitch input commands a flight-path rate of up to 0.20 rad/s nose up or 0.15 rad/s nose down, limited to +7.5/−3 g. Hands-off flight is held below the stall angle of attack. Sustained hard pulls at low speed or low thrust can still stall. On the ground, pitch input drives the elevator directly for rotation. The HUD shows the held flight-path angle (FPA HOLD).
 
 The touch stick has an 8% dead zone and a progressive response for fine pitch/roll adjustments near center, while retaining full authority at its edge. Sideways input commands roll, not a held bank angle: release to stop rolling and apply opposite input to level the wings. Passive directional stability opposes sideslip during manual flight as well as autopilot flight.
 
@@ -123,7 +126,7 @@ After **three uninterrupted seconds** with no stall, angle of attack below 0.12 
 
 Direct engagement needs at least 30 m (~100 ft) terrain clearance, 45–330 m/s speed, fuel, pitch within ±83°, and bank within ±149°. Once engaged, recovery continues unloading and leveling even if speed falls below 40 m/s or attitude crosses the ordinary autopilot limits; these upset conditions no longer cause it to abandon recovery. It still disconnects below 20 m terrain clearance, above 350 m/s, on ground contact or engine/airframe failure, and for manual overrides. Disconnect messages identify the specific condition. Transition to wings-level hold also requires at least 150 m clearance and pitch within ±57° to avoid immediately tripping that mode's stricter limits. It is not a spin-recovery system or a guarantee against terrain impact; insufficient altitude, extreme attitude, or lost control authority can prevent recovery. Gear and flaps remain pilot-controlled.
 
-For debugger investigations, `npm run build:debug` packages an unoptimized versioned archive with source maps. Serve it with `npm run preview -- --port 7450` and attach the JavaScript debugger to the app at port 7451. `npm start` rebuilds production using the current version, so do not use it to serve the debug archive. Run `npm run build` to create the next production package afterward.
+For debugger investigations, `npm start -- --port 7450` packages and serves an unoptimized archive with source maps using the current version; attach the JavaScript debugger to the app at port 7451. `npm run build:debug` produces the same kind of archive but increments the build number. Run `npm run build` to create the next production package afterward.
 
 ### Automatic takeoff and return-to-base landing
 

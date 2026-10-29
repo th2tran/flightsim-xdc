@@ -323,10 +323,17 @@ try {
   await stallPage.getByRole('button', { name: /Flight school/ }).click();
   await stallPage.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
   await stallPage.locator('.modal-backdrop').waitFor({ state: 'hidden' });
+  // Fly-by-wire holds a climb hands-off; bleed speed at idle, then pull through the alpha limit.
+  await stallPage.keyboard.down('ControlLeft');
   await stallPage.keyboard.down('ArrowDown');
-  await stallPage.waitForFunction(() => document.querySelector('.warning')?.textContent.includes('STALL'));
+  await stallPage.waitForTimeout(2500);
+  await stallPage.keyboard.up('ArrowDown');
+  await stallPage.waitForTimeout(9500);
+  await stallPage.keyboard.down('ArrowDown');
+  await stallPage.waitForFunction(() => document.querySelector('.warning')?.textContent.includes('STALL'), null, { timeout: 60000 });
   await stallPage.waitForFunction(() => document.querySelector('.notification')?.textContent.includes('CORRECTION - Stall'));
   await stallPage.keyboard.up('ArrowDown');
+  await stallPage.keyboard.up('ControlLeft');
   await stallPage.keyboard.press('t');
   await stallPage.waitForFunction(() => document.querySelector('.autopilot-status')?.textContent.includes('STALL RECOVERY'));
   await stallPage.waitForFunction(() => document.querySelector('.autopilot-status')?.textContent.includes('LEVEL / SPD'), null, { timeout: 60000 });
