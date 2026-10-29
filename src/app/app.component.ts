@@ -1,6 +1,7 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, ViewChild } from '@angular/core';
 import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { Aircraft, clamp, Scenario, STEP, terrainHeight } from './sim/flight';
+import { compressionBlocker, TIME_SCALES } from './sim/time-compression';
 import { Combat } from './sim/combat';
 import { FlightRenderer, ScreenTarget } from './sim/renderer';
 import { FlightMusic } from './sim/music';
@@ -70,6 +71,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private animation = 0;
   private last = 0;
   private accumulator = 0;
+  timeScaleIndex = 0;
+  get timeScale(): number { return TIME_SCALES[this.timeScaleIndex]; }
   private lastUi = 0;
   private lastCombatExplosionId = 0;
   private readonly missileRadarHistory = new Map<number, Vector3[]>();
@@ -163,6 +166,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.flyByWire.capture(this.aircraft);
     this.instructor.reset(this.aircraft);
     this.autopilot.disengage();
+    this.timeScaleIndex = 0;
     this.activeScenario = this.scenario;
     this.combat.reset(this.scenario, this.aircraft);
     if (this.activeScenario === 'training') this.combat.messageUntil = 0;
@@ -242,6 +246,22 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.combat.notify(error ?? (takeoff ? `Auto takeoff engaged: runway ${this.autopilot.runway}, full thrust, rotation and climb.`
       : `Return-to-base engaged: runway ${this.autopilot.runway}. Automatic approach, landing and braking.`), 6);
   }
+  changeTimeScale(direction: number): void {
+    if (!this.running) return;
+    const next = Math.min(Math.max(this.timeScaleIndex + direction, 0), TIME_SCALES.length - 1);
+    if (next > this.timeScaleIndex) {
+      const blocker = compressionBlocker(this.aircraft, this.autopilot, this.combat);
+      if (blocker) { this.combat.notify(`Time compression unavailable: ${blocker}.`, 4); return; }
+    }
+    if (next === this.timeScaleIndex) return;
+    this.timeScaleIndex = next;
+    this.combat.notify(this.timeScale === 1 ? 'Time compression off: real time.' : `Time compression ${this.timeScale}×. Autopilot flying.`, 3);
+    this.changes.detectChanges();
+  }
+  cycleTimeScale(): void {
+    if (this.timeScaleIndex === TIME_SCALES.length - 1) this.changeTimeScale(-this.timeScaleIndex);
+    else this.changeTimeScale(1);
+  }
   commandGoAround(): void {
     if (!this.running || this.autopilot.mode !== 'landing' || this.autopilot.landingStage === 'rollout') return;
     this.autopilot.goAround();
@@ -299,7 +319,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const dt = this.last ? Math.min((timestamp - this.last) / 1000, 0.1) : 0;
     this.last = timestamp;
     if (this.running) {
-      this.accumulator += dt;
+      this.accumulator += dt * this.timeScale;
       while (this.accumulator >= STEP) {
         this.updateControls(STEP);
         this.aircraft.step(STEP);
@@ -313,6 +333,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         if (this.combat.rounds < roundsBefore) this.sound.playGun();
         if (this.activeScenario === 'training') this.instructor.update(this.aircraft, this.autopilot, STEP, this.combat);
         this.accumulator -= STEP;
+        if (this.timeScaleIndex) {
+          const blocker = compressionBlocker(this.aircraft, this.autopilot, this.combat);
+          if (blocker) {
+            this.timeScaleIndex = 0;
+            this.accumulator = Math.min(this.accumulator, STEP);
+            if (this.autopilot.active && this.aircraft.phase !== 'crashed') this.combat.notify(`Time compression off: ${blocker}.`, 4);
+          }
+        }
         if (this.aircraft.phase === 'crashed') {
           this.autopilot.disengage();
           this.sound.playCrash();
@@ -422,7 +450,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   keyDown(event: KeyboardEvent): void {
     if (event.altKey || event.metaKey || event.target instanceof HTMLInputElement) return;
-    const flightKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space', 'KeyB', 'KeyM', 'KeyF', 'KeyG', 'KeyL', 'KeyV', 'KeyP', 'KeyH', 'KeyR', 'KeyT', 'KeyZ', 'BracketLeft', 'BracketRight', 'Backslash', 'Tab', 'Escape'];
+    const flightKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space', 'KeyB', 'KeyM', 'KeyF', 'KeyG', 'KeyL', 'KeyV', 'KeyP', 'KeyH', 'KeyR', 'KeyT', 'KeyZ', 'BracketLeft', 'BracketRight', 'Backslash', 'Comma', 'Period', 'Tab', 'Escape'];
     if (!flightKeys.includes(event.code)) return;
     event.preventDefault();
     if (event.code === 'Escape' && !event.repeat) { if (this.help) this.help = false; else if (this.menu && this.started) this.resume(); else this.togglePause(); return; }
@@ -442,6 +470,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       case 'KeyR': this.engageAutopilot(true); break;
       case 'KeyT': this.engageStallRecovery(); break;
       case 'KeyZ': this.cycleRadarRange(event.shiftKey ? -1 : 1); break;
+      case 'Period': this.changeTimeScale(1); break;
+      case 'Comma': this.changeTimeScale(-1); break;
     }
   }
 

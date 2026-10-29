@@ -1,4 +1,4 @@
 name = "MachStrike"
 description = "A Web-XDC fighter jet simulator with six-degree-of-freedom flight and combat."
 icon = "icon.png"
-version = "0.5.0+38"
+version = "0.5.0+39"

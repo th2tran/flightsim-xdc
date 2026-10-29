@@ -332,3 +332,48 @@ $accent: #edb272;
     text-shadow: 0 1px 2px #000, 0 0 6px #000c;
   }
 }
+
+.flight-info .time-compression {
+  min-height: 28px;
+  padding: 5px 7px;
+  font: 8px monospace;
+  letter-spacing: 1px;
+  background: var(--panel);
+
+  &.engaged {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+.autopilot-settings .autopilot-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  font: 9px monospace;
+  letter-spacing: 1px;
+
+  > span {
+    flex: 1;
+  }
+
+  small {
+    font-size: 8px;
+    color: var(--muted);
+  }
+
+  button {
+    width: 30px;
+    height: 28px;
+    font: 14px monospace;
+    background: var(--panel);
+  }
+
+  strong {
+    min-width: 30px;
+    text-align: center;
+    font: 12px monospace;
+    color: var(--accent);
+  }
+}

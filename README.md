@@ -49,6 +49,7 @@ Selection takes effect on the next launch; resuming an existing sortie keeps its
 | Autopilot hold / disconnect | H | AP settings, Capture & Hold / Disconnect |
 | Wings-level recovery | R | AP settings, Wings Level |
 | Stall recovery | T | AP settings, Stall Recovery |
+| Time compression (AP only) | . faster / , slower (1× · 2× · 4× · 8× · 16×), or click ▶▶ | Tap ▶▶ beside AP, or AP settings −/+ |
 
 The tactical radar shows home base, at the runway centre, as a blue square. When the base is outside the selected range, the square sits on the radar edge and is drawn dashed, pointing toward it. The HOME line below the radar gives the bearing and distance to base.
 
@@ -139,5 +140,7 @@ Select **Start on runway**, launch, open **AP**, and choose **Auto Takeoff**. Th
 While airborne, choose **Return & Land**. It uses the same safe initial engagement envelope as hold, chooses **runway 36** from the north side of the base (`z ≥ 0`) or **18** from the south, and flies offset return/entry fixes before intercepting the extended centerline. Allow several minutes for the circuit; it is not an instant final-approach shortcut. Navigation normally targets about 900 m MSL and 270 kt, reducing to 230 kt during alignment. The final path is a **4.5° descent** over this procedural airbase's hills, slowing to **175 kt**, with automatic gear/flaps, a flare below 30 m over the runway approach, and wheel braking after touchdown. The heading/altitude/speed fields are read-only during automatic departure/landing.
 
 An unaligned final fix, low terrain margin outside the runway, unstable close-in lateral/heading/bank/speed/sink conditions, or an overshot runway triggers a **go-around**. **Go Around** in the AP panel also commands one manually. The controller climbs on runway course, retracts configuration with safe speed/clearance, and rejoins the approach after at least 30 seconds and 450 m terrain clearance. Approach/departure stalls cancel that sequence in favor of stall recovery. Engine loss, aircraft destruction, or an exceeded flight envelope disconnects AP explicitly.
+
+**Time compression** speeds up the simulation while autopilot is flying, which is useful for long Return & Land transits. Press `.` (or tap the ▶▶ button beside the AP status) to step through 2×, 4×, 8× and 16×; `,` steps back down. The physics still runs at its normal fixed step, so the flight path is identical, just faster. Compression drops automatically to real time when the autopilot disconnects (including any manual input), a hostile missile is inbound, a hostile fighter is within 8 km, stall recovery engages, or autoland reaches the flare and rollout.
 
 Keyboard/touch flight controls, manual throttle, or gear/flap overrides disconnect automatic flight immediately; weapons do not. H disconnects every mode. Autoland is specific to the existing runway and calm procedural environment, not a general terrain planner or certified landing system. It cannot guarantee a landing after fuel exhaustion, hostile damage, extreme initial states, or insufficient clearance; supervise and override when needed.
