@@ -41,6 +41,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   flightPath = { x: 50, y: 50, visible: false };
   radar: { id: number; x: number; y: number; selected: boolean }[] = [];
   radarMissiles: { id: number; x: number; y: number; trail: string }[] = [];
+  readonly radarRanges = [3, 6, 12, 25];
+  radarRangeIndex = 1;
+  get radarRangeKm(): number { return this.radarRanges[this.radarRangeIndex]; }
   pitchMarks = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60];
   headingMarks = [-30, -20, -10, 0, 10, 20, 30];
   stickX = 0;
@@ -359,11 +362,17 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (autopilotMessage) this.combat.notify(autopilotMessage, 6);
   }
 
+  cycleRadarRange(direction = 1): void {
+    this.radarRangeIndex = (this.radarRangeIndex + direction + this.radarRanges.length) % this.radarRanges.length;
+    if (this.running) this.updateRadar();
+    this.changes.detectChanges();
+  }
+
   private updateRadar(): void {
     const inverse = this.aircraft.attitude.clone().invert();
     this.radar = this.combat.alive.map(b => {
       const relative = b.position.clone().sub(this.aircraft.position).applyQuaternion(inverse);
-      const scale = Math.max(6000, Math.hypot(relative.x, relative.z));
+      const scale = Math.max(this.radarRangeKm * 1000, Math.hypot(relative.x, relative.z));
       return { id: b.id, x: 50 + relative.x / scale * 43, y: 50 + relative.z / scale * 43, selected: b.id === this.combat.selected };
     });
     const incoming = this.combat.projectiles.filter(projectile => projectile.kind === 'hostile' && !projectile.decoyed);
@@ -380,7 +389,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       }
       const toRadar = (position: Vector3): { x: number; y: number } => {
         const relative = position.clone().sub(this.aircraft.position).applyQuaternion(inverse);
-        const scale = Math.max(6000, Math.hypot(relative.x, relative.z));
+        const scale = Math.max(this.radarRangeKm * 1000, Math.hypot(relative.x, relative.z));
         return { x: 50 + relative.x / scale * 43, y: 50 + relative.z / scale * 43 };
       };
       return {
@@ -408,7 +417,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   keyDown(event: KeyboardEvent): void {
     if (event.altKey || event.metaKey || event.target instanceof HTMLInputElement) return;
-    const flightKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space', 'KeyB', 'KeyM', 'KeyF', 'KeyG', 'KeyL', 'KeyV', 'KeyP', 'KeyH', 'KeyR', 'KeyT', 'BracketLeft', 'BracketRight', 'Backslash', 'Tab', 'Escape'];
+    const flightKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space', 'KeyB', 'KeyM', 'KeyF', 'KeyG', 'KeyL', 'KeyV', 'KeyP', 'KeyH', 'KeyR', 'KeyT', 'KeyZ', 'BracketLeft', 'BracketRight', 'Backslash', 'Tab', 'Escape'];
     if (!flightKeys.includes(event.code)) return;
     event.preventDefault();
     if (event.code === 'Escape' && !event.repeat) { if (this.help) this.help = false; else if (this.menu && this.started) this.resume(); else this.togglePause(); return; }
@@ -427,6 +436,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       case 'KeyH': if (this.autopilot.active) this.disconnectAutopilot(); else this.engageAutopilot(); break;
       case 'KeyR': this.engageAutopilot(true); break;
       case 'KeyT': this.engageStallRecovery(); break;
+      case 'KeyZ': this.cycleRadarRange(event.shiftKey ? -1 : 1); break;
     }
   }
 

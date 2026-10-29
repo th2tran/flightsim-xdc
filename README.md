@@ -41,6 +41,7 @@ Selection takes effect on the next launch; resuming an existing sortie keeps its
 | Gear / flaps | G / L | Gear / flaps buttons |
 | Wheel brakes | Hold B | Hold BRAKE |
 | Select target | Tab or click a target box | NEXT or tap a target box |
+| Radar range | Z cycles 3 / 6 / 12 / 25 km (Shift+Z reverses), or click the radar | Tap the radar |
 | Missile | M | FOX TWO |
 | Cannon | Hold Space | Hold GUN |
 | Flares | F | FLARES |

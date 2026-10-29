@@ -213,6 +213,17 @@ try {
     await page.getByRole('button', { name: /LAUNCH SORTIE/ }).click();
     await page.waitForFunction(() => document.querySelectorAll('.radar-contact').length === 3);
     assert.equal(await page.locator('.radar-contact').count(), 3);
+    await page.locator('.radar-scope').click();
+    assert.match(await page.locator('.radar-range').innerText(), /^12 KM/, 'Tapping the radar must zoom out');
+    if (!mobile) {
+      await page.keyboard.press('Shift+KeyZ');
+      assert.match(await page.locator('.radar-range').innerText(), /^6 KM/, 'Shift+Z must step radar range back');
+    } else {
+      await page.locator('.radar-range').click();
+      await page.locator('.radar-range').click();
+      await page.locator('.radar-range').click();
+      assert.match(await page.locator('.radar-range').innerText(), /^6 KM/, 'Radar range must cycle back to 6 km');
+    }
     await page.getByRole('button', { name: mobile ? 'Cycle touch target' : 'Cycle target', exact: true }).click();
     await page.getByRole('button', { name: /FLARES/ }).click();
     await page.waitForTimeout(200);

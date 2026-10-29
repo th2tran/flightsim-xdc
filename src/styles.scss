@@ -304,5 +304,8 @@ $accent: #edb272;
 }
 .aircraft-description { font-size: 11px; line-height: 1.5; color: var(--muted); margin-bottom: 18px; }
 .briefing-title app-aircraft-preview.briefing-jet { transform: none; flex-shrink: 0; }
+.radar-range { background: none; border: 0; padding: 0; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; pointer-events: auto; }
+.radar-range kbd { font-size: .85em; opacity: .7; margin-left: 2px; }
+.radar-scope { cursor: pointer; pointer-events: auto; }
 .radar-missile-trail { fill: none; stroke: #ff765f; stroke-width: 1.1; stroke-dasharray: 1.4 1.1; opacity: .8; }
 .radar-missile { fill: #ff654e; stroke: #ffd1a6; stroke-width: .7; filter: drop-shadow(0 0 1.6px #ff573d); }
