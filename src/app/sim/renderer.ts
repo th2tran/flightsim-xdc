@@ -6,7 +6,7 @@ import { makeJet } from './jet-model';
 import { SKY_HORIZON, createClouds, createSky, createTerrain, createTrees } from './scenery';
 export { makeJet } from './jet-model';
 
-export interface ScreenTarget { id: number; x: number; y: number; visible: boolean; selected: boolean; range: number; }
+export interface ScreenTarget { id: number; x: number; y: number; visible: boolean; selected: boolean; range: number; label: string; pilot: string; human: boolean; friendly: boolean; }
 
 interface StrikeVisual {
   group: THREE.Group;
@@ -269,7 +269,9 @@ export class FlightRenderer {
       active.add(bogey.id);
       let jet = this.enemyMeshes.get(bogey.id);
       if (!jet) {
-        jet = makeJet(true);
+        // Other players fly their chosen airframe; only rivals get the hostile finish.
+        const airframe = bogey.peer ? AIRFRAMES.find(item => item.id === bogey.airframe) : undefined;
+        jet = airframe ? makeJet(!!combat.network?.competitive, airframe) : makeJet(true);
         this.enemyMeshes.set(bogey.id, jet);
         this.scene.add(jet);
       }
@@ -343,6 +345,10 @@ export class FlightRenderer {
         visible: screen.z > -1 && screen.z < 1 && Math.abs(screen.x) < 0.92 && Math.abs(screen.y) < 0.85,
         selected: combat.selected === bogey.id,
         range: aircraft.position.distanceTo(bogey.position),
+        label: bogey.peer ? (bogey.name ?? 'PILOT').toUpperCase() : `BANDIT ${bogey.id}`,
+        pilot: bogey.peer ? bogey.name || 'Pilot' : 'Computer',
+        human: !!bogey.peer,
+        friendly: !!bogey.peer && !combat.network?.competitive,
       };
     });
   }

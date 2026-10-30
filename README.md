@@ -73,7 +73,13 @@ Corrective instructions interrupt lessons for stalls, low descending flight, ste
 - **Overwhelming odds:** five faster bogeys with more frequent missile attacks.
   ![Combat mode - overwhelming odds](screenshots/overwhelming-odds.png)
 
-Every sortie can begin airborne or on runway 36. Loadout and airborne start vary by aircraft and are shown in the briefing: F/A-27 6 IR missiles · 640 rounds · 24 flares (3,600 ft · 320 kt); F-14 6 · 675 · 30 (4,900 ft · 350 kt); F-15E 8 · 510 · 30 (3,900 ft · 340 kt); F-22 8 · 480 · 24 (4,900 ft · 360 kt); YF-23 6 · 480 · 24 (4,600 ft · 360 kt). Acquisition requires the target within 9 degrees and 6.5 km for 1.8 seconds. Missiles have finite turn rate and fuel/time limits; cannon rounds use swept collision tests. Enemy missiles can be decoyed by flares within 1.6 km; separation and evasive maneuvering still matter. Neutralize every bogey, then return to the airbase. Kills score 1,000 points; a runway landing scores 500.
+- **Network campaign:** multiplayer combat with every pilot in the chat, over the webxdc realtime channel. The briefing shows a read-only list of connected pilots and their status. Whoever presses **Launch campaign** hosts: their mode and bogey count (1, 3, 6 or 10 computer bogeys; competitive also offers 0 for pure player-versus-player) apply, and every pilot waiting in the briefing launches with them in an airborne formation, each in the aircraft they selected. A name bubble trails above every aircraft in view: the pilot's name for players, "Computer" for AI bogeys.
+  - **Co-operative:** everyone fights the computer bogeys together. Wingmen show in blue, cannot be locked, and friendly cannon fire does no damage. The campaign is won when the bogeys are gone.
+  - **Competitive:** every pilot for themselves. Any aircraft, player or computer, can be locked and shot; the last pilot standing wins.
+
+  Each client is authoritative for its own jet: player missiles are flown on the victim's client (so flares work) and cannon hits are reported by the shooter. The alive pilot with the lowest address simulates the computer bogeys and hands them over if they leave or are shot down. Network campaigns run in real time: pausing does not stop the shared world, and autopilot time compression is disabled (the control shows "REAL TIME · NETWORK CAMPAIGN"). Pilots who are shot down return to mission select and can join the next launch.
+
+Every single-player sortie can begin airborne or on runway 36. Loadout and airborne start vary by aircraft and are shown in the briefing: F/A-27 6 IR missiles · 640 rounds · 24 flares (3,600 ft · 320 kt); F-14 6 · 675 · 30 (4,900 ft · 350 kt); F-15E 8 · 510 · 30 (3,900 ft · 340 kt); F-22 8 · 480 · 24 (4,900 ft · 360 kt); YF-23 6 · 480 · 24 (4,600 ft · 360 kt). Acquisition requires the target within 9 degrees and 6.5 km for 1.8 seconds. Missiles have finite turn rate and fuel/time limits; cannon rounds use swept collision tests. Enemy missiles can be decoyed by flares within 1.6 km; separation and evasive maneuvering still matter. Neutralize every bogey, then return to the airbase. Kills score 1,000 points; a runway landing scores 500.
 
 ## Simulation and rendering
 
@@ -91,6 +97,7 @@ Takeoff/landing states are `parked → takeoff → airborne → landed`, with re
 - `src/app/sim/scenery.ts`: procedural terrain shading, trees, sky dome and clouds (visual only).
 - `src/app/sim/autopilot.ts`: physics-driven hold, wings-level/stall recovery, automatic departure, return navigation, approach, flare, rollout and go-around.
 - `src/app/sim/combat.ts`: bogey AI, target lock, weapons, countermeasures, damage.
+- `src/app/sim/network.ts`: network campaign lobby, launch, state sync and bogey authority over webxdc realtime.
 - `src/app/sim/renderer.ts`: Three.js world, aircraft, camera, effects and projections.
 - `src/app/sim/sound.ts`: throttle-responsive turbine/roar synthesis and prioritized warning alarms.
 - `src/app/sim/warnings.ts`: shared warning thresholds and priority for the HUD and audio.

@@ -6,7 +6,7 @@
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 14 29 22 29 25 19 21 18 28 22 31 16 29 10 31 14 28 13 21 3 25 3 22 13 14Z"/></svg>
       <span>MACHSTRIKE<small>TACTICAL FLIGHT SIMULATOR</small></span>
     </button>
-    <div class="mission-strip"><span class="live-dot"></span><span>{{ missionName }}<small>{{ combat.complete ? 'AIRSPACE SECURED' : activeScenario === 'training' ? 'FREE FLIGHT · RUNWAY 36 / 18' : 'OPERATION NORTHSTAR' }}</small></span></div>
+    <div class="mission-strip"><span class="live-dot"></span><span>{{ missionName }}<small>{{ missionDetail }}</small></span></div>
     <div class="top-actions">
       <span class="timer">{{ elapsed }}<small>FLIGHT TIME</small></span>
       <button class="icon-button music-button" (click)="audioPanel = !audioPanel" aria-label="Music settings" [attr.aria-expanded]="audioPanel" aria-controls="music-settings" [class.music-muted]="!music.enabled">♫</button>
@@ -55,7 +55,7 @@
       <label>HEADING (°)<input aria-label="Autopilot heading" type="number" min="0" max="359" step="1" [value]="autopilot.heading" [disabled]="autopilot.mode !== 'hold'" (change)="setAutopilotTarget($event, 'heading')"></label>
       <label>ALTITUDE MSL (FT)<input aria-label="Autopilot altitude" type="number" min="1000" max="30000" step="100" [value]="autopilot.altitude" [disabled]="autopilot.mode !== 'hold'" (change)="setAutopilotTarget($event, 'altitude')"></label>
       <label>AIRSPEED (KT)<input aria-label="Autopilot airspeed" type="number" min="220" max="550" step="10" [value]="autopilot.speed" [disabled]="!autopilot.active || autopilot.mode === 'stall-recovery' || autopilot.automaticFlight" (change)="setAutopilotTarget($event, 'speed')"></label>
-      <div class="autopilot-time"><span>TIME COMPRESSION <small>&lt; / &gt;</small></span><button (click)="changeTimeScale(-1)" [disabled]="!running || timeScale === 1" aria-label="Slower time compression">−</button><strong>{{ timeScale }}×</strong><button (click)="changeTimeScale(1)" [disabled]="!running || !autopilot.active || timeScale === 16" aria-label="Faster time compression">+</button></div>
+      <div class="autopilot-time" [class.locked]="!!combat.network"><span>TIME COMPRESSION <small>&lt; / &gt;</small></span><button (click)="changeTimeScale(-1)" [disabled]="!running || timeScale === 1" aria-label="Slower time compression">−</button><strong>{{ timeScale }}×</strong><button (click)="changeTimeScale(1)" [disabled]="!running || !autopilot.active || timeScale === 16 || !!combat.network" [attr.title]="combat.network ? 'Network campaigns run in real time for every pilot' : null" aria-label="Faster time compression">+</button>@if (combat.network) { <small class="autopilot-time-note">REAL TIME · NETWORK CAMPAIGN</small> }</div>
       <button class="autopilot-disconnect" (click)="disconnectAutopilot()" [disabled]="!autopilot.active">DISCONNECT · H</button>
       <small>H: hold / disconnect · R: wings level · T: stall recovery<br>Hold / level: 500 ft minimum terrain clearance. Stall recovery: 100 ft minimum, altitude loss expected. Auto takeoff needs an aligned runway start. Return &amp; Land flies an extended approach to this airbase and goes around if unstable. Monitor all automatic flight; recovery is not guaranteed.</small>
     </section>
@@ -94,8 +94,8 @@
     @if (warning && started) { <div class="warning" role="status">{{ warning }}</div> }
     @for (target of targets; track target.id) {
       @if (target.visible) {
-        <button class="target-marker" [class.selected]="target.selected" [class.target-locked]="target.selected && combat.lock >= 1" [style.left.%]="target.x" [style.top.%]="target.y" (click)="combat.selected = target.id; combat.lock = 0" [attr.aria-label]="'Select bandit ' + target.id">
-          <span class="target-box"></span><small>BANDIT {{ target.id }} · {{ target.range / 1000 | number:'1.1-1' }}</small>
+        <button class="target-marker" [class.selected]="target.selected" [class.friendly]="target.friendly" [class.target-locked]="target.selected && combat.lock >= 1" [style.left.%]="target.x" [style.top.%]="target.y" (click)="selectTarget(target.id)" [attr.aria-label]="(target.friendly ? 'Wingman ' : 'Select ') + target.label + ', pilot ' + target.pilot">
+          <span class="pilot-bubble" [class.human]="target.human" aria-hidden="true">{{ target.pilot }}</span><span class="target-box"></span><small>{{ target.label }} · {{ target.range / 1000 | number:'1.1-1' }}</small>
         </button>
       }
     }
@@ -127,7 +127,11 @@
         <path d="M50 45 53 54 50 52 47 54Z" class="radar-player"/>
         <g [attr.transform]="'translate(' + radarBase.x + ' ' + radarBase.y + ')'" class="radar-base" [class.pinned]="radarBase.pinned" aria-hidden="true"><rect x="-2.6" y="-2.6" width="5.2" height="5.2"/><path d="M0-1.8V1.8"/></g>
         @for (contact of radar; track contact.id) {
-          <path [attr.transform]="'translate(' + contact.x + ' ' + contact.y + ')'" d="M0-3 3 0 0 3-3 0Z" class="radar-contact" [class.chosen]="contact.selected"/>
+          @if (contact.peer) {
+            <path [attr.transform]="'translate(' + contact.x + ' ' + contact.y + ')'" d="M0-3 2.6 2.2-2.6 2.2Z" class="radar-contact radar-peer" [class.friendly]="contact.friendly" [class.chosen]="contact.selected"/>
+          } @else {
+            <path [attr.transform]="'translate(' + contact.x + ' ' + contact.y + ')'" d="M0-3 3 0 0 3-3 0Z" class="radar-contact" [class.chosen]="contact.selected"/>
+          }
         }
         @for (missile of radarMissiles; track missile.id) {
           @if (missile.trail) {
@@ -137,7 +141,7 @@
         }
         <text x="50" y="5">N / FWD</text>
       </svg>
-      <div class="radar-footer"><span>{{ combat.alive.length }} HOSTILE{{ combat.alive.length === 1 ? '' : 'S' }}</span><span [class.danger-text]="combat.incoming > 0">{{ combat.incoming ? 'MSL INBOUND' : 'RWR CLEAR' }}</span></div>
+      <div class="radar-footer"><span>{{ combat.hostiles.length }} HOSTILE{{ combat.hostiles.length === 1 ? '' : 'S' }}@if (combat.network) { · {{ combat.peers.length }} PILOT{{ combat.peers.length === 1 ? '' : 'S' }} }</span><span [class.danger-text]="combat.incoming > 0">{{ combat.incoming ? 'MSL INBOUND' : 'RWR CLEAR' }}</span></div>
       <div class="radar-footer radar-home"><span><i class="radar-home-icon"></i> HOME</span><span>{{ baseBearing }}° · {{ baseDistance }} KM</span></div>
     </div>
     <div class="panel target-panel">
@@ -150,7 +154,7 @@
 
   <div class="notification" [class.show]="!!notification && started && !menu && !help" role="status"><span>{{ activeScenario === 'training' && combat.time >= combat.messageUntil ? 'FLIGHT SCHOOL / INSTRUCTOR' : 'COMMS' }}</span>{{ notification }}</div>
   @if (combat.complete && !menu && !help && aircraft.phase !== 'crashed') {
-    <div class="mission-success">OBJECTIVE COMPLETE <span>+{{ score }} PTS · RTB {{ baseBearing }}° / {{ baseDistance }} KM</span></div>
+    <div class="mission-success">OBJECTIVE COMPLETE. RETURN TO BASE!<span>+{{ score }} PTS · RTB {{ baseBearing }}° / {{ baseDistance }} KM</span></div>
   }
   @if (aircraft.phase === 'landed' && !menu && !help) {
     <div class="landing-report">TOUCHDOWN {{ aircraft.touchdownRate | number:'1.1-1' }} M/S · HOLD BRAKE TO STOP</div>
@@ -182,7 +186,7 @@
           <h1 id="manual-title">Know your aircraft.</h1><p class="intro">A hands-on flight model. Optional autopilot, no invisible rails.</p>
           <div class="manual-grid">
             <div><h3>01 / FLIGHT CONTROLS</h3><p><kbd>↓ / S</kbd> Pull up · <kbd>↑ / W</kbd> Push nose down<br><kbd>← → / A D</kbd> Roll · <kbd>Q E</kbd> Rudder<br>Fly-by-wire: release the stick to hold the current flight path · <kbd>[ / ]</kbd> Trim held path 1° down / up · <kbd>\</kbd> Level flight path<br><kbd>Shift</kbd> Add thrust · <kbd>Ctrl</kbd> Reduce thrust<br><kbd>G</kbd> Gear · <kbd>L</kbd> Flaps · <kbd>B</kbd> Hold brakes<br><kbd>Z</kbd> Radar range (Shift+Z back) · <kbd>, / .</kbd> Time compression (AP only) · <kbd>V</kbd> Camera · <kbd>P / Esc</kbd> Pause</p><p>Touch: drag the stick down to pitch up; sideways to bank. Use the throttle slider, yaw pedals, and weapon buttons. All controls support simultaneous touches.</p><p><kbd>H</kbd> Capture heading / altitude / speed, or disconnect AP. <kbd>R</kbd> Wings level and zero vertical speed. <kbd>T</kbd> Stall recovery: unload wing, level wings, full thrust, then wings-level hold after airflow and speed recover. An engaged AP enters stall recovery automatically. Manual flight input disconnects AP; weapons do not. AP settings beside the callsign also provide Auto Takeoff, Return &amp; Land, and Go Around. While AP flies, <kbd>.</kbd> or the ▶▶ button speeds time up to 16× (<kbd>,</kbd> slows down); it returns to real time for missiles, hostiles within 8 km, stall recovery, flare and touchdown, or any manual input. Supervise all automatic modes.</p></div>
-            <div><h3>02 / ENGAGEMENT</h3><p><kbd>Tab</kbd> Cycle bandits. Keep the selected target within 9° of the nose and under 6.5 km for 1.8 s to lock. <kbd>M</kbd> Launch a heat-seeker. <kbd>Space</kbd> Hold the 20 mm cannon; effective inside 1.5 km. Lead a turning target.</p><p><kbd>F</kbd> Release two flares. When a missile is within 1.6 km, flares can decoy it. Turn hard to separate from the flare cloud. Countermeasures are limited.</p></div>
+            <div><h3>02 / ENGAGEMENT</h3><p><kbd>Tab</kbd> Cycle bandits. Keep the selected target within 9° of the nose and under 6.5 km for 1.8 s to lock. <kbd>M</kbd> Launch a heat-seeker. <kbd>Space</kbd> Hold the 20 mm cannon; effective inside 1.5 km. Lead a turning target.</p><p><kbd>F</kbd> Release two flares. When a missile is within 1.6 km, flares can decoy it. Turn hard to separate from the flare cloud. Countermeasures are limited.<br>Network campaign: other players appear by name. Co-op wingmen show in blue and cannot be targeted; in competitive mode every jet is fair game.</p></div>
             <div><h3>03 / TAKEOFF & RECOVERY</h3><p>Runway 36 points north (000°), 18 south (180°). From the runway: brakes off, full thrust, ease back at 150–170 kt. Retract gear and flaps after a positive climb. Or select Auto Takeoff from an aligned runway start: AP manages rotation, configuration and climb, then captures hold.</p><p>Return &amp; Land flies an extended circuit, selects runway 36/18, aligns, descends on a 4.5° terrain-clearing approach at 175 kt, configures gear/flaps, flares and brakes. An unstable approach triggers a go-around; the AP panel also has a Go Around button. Manual gear/flap changes disconnect these automatic modes.</p><p>For manual landing, approach at 160–190 kt with gear/flaps down and ensure terrain clearance. Touch down inside the 76 × 3200 m runway, under 5.5 m/s sink, bank under 10°, nose between −4° and +17°. Brake after touchdown. Automatic landing does not guarantee safety under hostile damage, fuel exhaustion or extreme initial conditions.</p></div>
             <div><h3>04 / READ THE SKY</h3><p>The pitch ladder and bank arc show attitude. The small winged circle is your velocity vector, not your nose. Speed is true airspeed in knots; altitude is MSL feet; R is height above terrain. Radar is aircraft-relative, nose up, 6 km radius.</p><p>Pulling high angle of attack stalls the wing. Lower the nose and add thrust to recover. Banking redirects lift: coordinate with rudder and back pressure. Fuel, drag, G loading, and airframe damage matter.</p></div>
           </div>
@@ -204,15 +208,45 @@
             <button class="scenario-card" [class.chosen]="scenario === 'training'" (click)="scenario = 'training'"><span class="card-number">01 <small>ORIENTATION</small></span><span class="card-symbol">◎</span><strong>Flight school</strong><p>Learn the aircraft. Fly the pattern. Make it home.</p><span class="card-footer">TRAINING DRONES <b>12 STEPS ↗</b></span></button>
             <button class="scenario-card" [class.chosen]="scenario === 'intercept'" (click)="scenario = 'intercept'"><span class="card-number">02 <small>STANDARD</small></span><span class="card-symbol">⌖</span><strong>Coastal intercept</strong><p>Three bandits inbound. Intercept and secure the airspace.</p><span class="card-footer">3 HOSTILES <b>AIR TO AIR ↗</b></span></button>
             <button class="scenario-card" [class.chosen]="scenario === 'furball'" (click)="scenario = 'furball'"><span class="card-number">03 <small>HIGH THREAT</small></span><span class="card-symbol">⋔</span><strong>Overwhelming odds</strong><p>Five agile adversaries. Watch your six. Stay alive.</p><span class="card-footer">5 HOSTILES <b>DOGFIGHT ↗</b></span></button>
+            <button class="scenario-card" [class.chosen]="scenario === 'network'" (click)="scenario = 'network'"><span class="card-number">04 <small>MULTIPLAYER</small></span><span class="card-symbol">⇆</span><strong>Network campaign</strong><p>Fly with everyone in this chat. Team up or fight it out.</p><span class="card-footer">{{ peerList.length }} CONNECTED <b>LIVE ↗</b></span></button>
           </div>
-          <div class="sortie-options"><label><input type="checkbox" [checked]="runwayStart" (change)="runwayStart = !runwayStart"><span>Start on runway<small>{{ runwayStart ? 'Cold roll · gear and flaps down' : 'Airborne · ' + (startAltitudeFeet | number) + ' ft · ' + startSpeedKnots + ' kt' }}</small></span></label><span class="loadout">LOADOUT <b>{{ selectedAirframe.loadout.missiles }} × IR MSL</b><b>{{ selectedAirframe.loadout.rounds }} × 20 MM</b><b>{{ selectedAirframe.loadout.flares }} × FLARE</b></span></div>
-          <div class="briefing-footer"><button class="text-button" (click)="showHelp()">FLIGHT MANUAL <span>↗</span></button><span class="best-score">PERSONAL BEST <b>{{ best | number }}</b></span><div class="launch-actions">@if (started) { <button (click)="resume()">RESUME</button> }<button class="primary-button" (click)="start()">LAUNCH SORTIE <span>→</span></button></div></div>
+          @if (scenario === 'network') {
+            <section class="network-panel" aria-label="Network campaign">
+              <div class="network-options">
+                <div class="segmented" role="group" aria-label="Campaign mode"><span>MODE</span>
+                  <button [class.chosen]="campaignMode === 'cooperative'" [attr.aria-pressed]="campaignMode === 'cooperative'" (click)="campaignMode = 'cooperative'">CO-OPERATIVE</button>
+                  <button [class.chosen]="campaignMode === 'competitive'" [attr.aria-pressed]="campaignMode === 'competitive'" (click)="campaignMode = 'competitive'">COMPETITIVE</button>
+                </div>
+                <div class="segmented" role="group" aria-label="Computer bogeys"><span>BOGEYS</span>
+                  @for (count of campaignBogeyOptions; track count) {
+                    <button [class.chosen]="campaignBogeys === count" [attr.aria-pressed]="campaignBogeys === count" (click)="campaignBogeys = count">{{ count }}</button>
+                  }
+                </div>
+              </div>
+              <p class="network-rules">{{ campaignMode === 'cooperative'
+                ? 'Co-operative: all pilots fight the computer bogeys together. Wingmen cannot be locked and friendly cannon fire does no damage.'
+                : 'Competitive: every pilot for themselves. Lock and shoot any aircraft, players included. Last pilot standing wins.' }}</p>
+              <div class="peer-list" role="list" aria-label="Connected pilots">
+                <span class="peer-heading">CONNECTED PILOTS · {{ peerList.length }}</span>
+                @for (peer of peerList; track peer.addr) {
+                  <div class="peer" role="listitem"><span [class]="'peer-dot ' + peer.status"></span><strong>{{ peer.name }}@if (peer.self) { <small>(you)</small> }</strong><span>{{ peerStatus(peer) }}</span></div>
+                }
+              </div>
+              @if (!network.available) {
+                <p class="danger-text" role="status">Realtime networking is unavailable in this host. Network campaigns need a webxdc app with realtime channel support.</p>
+              } @else {
+                <small class="network-hint">Launching sends every pilot in the briefing into your campaign with your settings. Each pilot flies the aircraft they selected.</small>
+              }
+            </section>
+          }
+          <div class="sortie-options">@if (scenario === 'network') { <span class="formation-start">Formation start<small>Airborne · {{ startAltitudeFeet | number }} ft · {{ startSpeedKnots }} kt</small></span> } @else { <label><input type="checkbox" [checked]="runwayStart" (change)="runwayStart = !runwayStart"><span>Start on runway<small>{{ runwayStart ? 'Cold roll · gear and flaps down' : 'Airborne · ' + (startAltitudeFeet | number) + ' ft · ' + startSpeedKnots + ' kt' }}</small></span></label> }<span class="loadout">LOADOUT <b>{{ selectedAirframe.loadout.missiles }} × IR MSL</b><b>{{ selectedAirframe.loadout.rounds }} × 20 MM</b><b>{{ selectedAirframe.loadout.flares }} × FLARE</b></span></div>
+          <div class="briefing-footer"><button class="text-button" (click)="showHelp()">FLIGHT MANUAL <span>↗</span></button><span class="best-score">PERSONAL BEST <b>{{ best | number }}</b></span><div class="launch-actions">@if (started) { <button (click)="resume()">RESUME</button> }<button class="primary-button" (click)="start()" [disabled]="scenario === 'network' && !network.available">{{ scenario === 'network' ? 'LAUNCH CAMPAIGN' : 'LAUNCH SORTIE' }} <span>→</span></button></div></div>
           <p class="briefing-note">PROCEDURAL WORLD · SIX DEGREES OF FREEDOM · DESKTOP + TOUCH</p>
         </section>
       } @else if (aircraft.phase === 'crashed') {
-        <section class="dialog result" role="dialog" aria-modal="true" aria-labelledby="result-title"><span class="eyebrow danger-text">SORTIE ENDED</span><h1 id="result-title">Aircraft lost.</h1><p>{{ aircraft.crashReason }}. Review your approach and fly again.</p><div class="result-stats"><div><strong>{{ combat.kills }}</strong><span>CONFIRMED KILLS</span></div><div><strong>{{ elapsed }}</strong><span>FLIGHT TIME</span></div><div><strong>{{ score }}</strong><span>SCORE</span></div></div><div class="result-actions"><button (click)="openMenu()">MISSION SELECT</button><button class="primary-button" (click)="start()">FLY AGAIN →</button></div></section>
+        <section class="dialog result" role="dialog" aria-modal="true" aria-labelledby="result-title"><span class="eyebrow danger-text">SORTIE ENDED</span><h1 id="result-title">Aircraft lost.</h1><p>{{ aircraft.crashReason }}. {{ activeScenario === 'network' ? 'The campaign continues without you. Return to mission select to join or launch the next one.' : 'Review your approach and fly again.' }}</p><div class="result-stats"><div><strong>{{ combat.kills }}</strong><span>CONFIRMED KILLS</span></div><div><strong>{{ elapsed }}</strong><span>FLIGHT TIME</span></div><div><strong>{{ score }}</strong><span>SCORE</span></div></div><div class="result-actions"><button (click)="openMenu()">MISSION SELECT</button>@if (activeScenario !== 'network') { <button class="primary-button" (click)="start()">FLY AGAIN →</button> }</div></section>
       } @else {
-        <section class="dialog pause-dialog" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="eyebrow">FLIGHT ON HOLD</span><h1 id="pause-title">Take a breath.</h1><p>Simulation paused. Your aircraft is right where you left it.</p><button class="primary-button" (click)="resume()">RESUME FLIGHT →</button><button (click)="openMenu()">MISSION SELECT</button><button (click)="showHelp()">FLIGHT MANUAL</button></section>
+        <section class="dialog pause-dialog" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="eyebrow">FLIGHT ON HOLD</span><h1 id="pause-title">Take a breath.</h1><p>{{ networkLive ? 'Network campaigns cannot be paused. Your jet keeps flying and the battle goes on.' : 'Simulation paused. Your aircraft is right where you left it.' }}</p><button class="primary-button" (click)="resume()">RESUME FLIGHT →</button><button (click)="openMenu()">MISSION SELECT</button><button (click)="showHelp()">FLIGHT MANUAL</button></section>
       }
     </div>
   }

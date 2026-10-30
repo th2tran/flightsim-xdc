@@ -7,6 +7,7 @@ export const COMPRESSION_THREAT_RANGE = 8000;
 
 /** Returns why time compression is unavailable, or null when the sim may run faster than real time. */
 export function compressionBlocker(aircraft: Aircraft, autopilot: Autopilot, combat: Combat): string | null {
+  if (combat.network) return 'network campaigns run in real time';
   if (!autopilot.active) return 'autopilot required';
   if (autopilot.mode === 'stall-recovery') return 'stall recovery in progress';
   if (aircraft.phase === 'crashed') return 'aircraft lost';

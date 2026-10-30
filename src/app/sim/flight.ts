@@ -2,7 +2,7 @@ import { Quaternion, Vector3 } from 'three';
 import { AIRFRAMES, Airframe } from './airframes';
 
 export type FlightPhase = 'parked' | 'takeoff' | 'airborne' | 'landed' | 'crashed';
-export type Scenario = 'training' | 'intercept' | 'furball';
+export type Scenario = 'training' | 'intercept' | 'furball' | 'network';
 export interface Controls {
   pitch: number;
   roll: number;

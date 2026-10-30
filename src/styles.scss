@@ -348,6 +348,7 @@ $accent: #edb272;
 
 .autopilot-settings .autopilot-time {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin: 10px 0;
@@ -368,6 +369,13 @@ $accent: #edb272;
     height: 28px;
     font: 14px monospace;
     background: var(--panel);
+
+    &:disabled {
+      color: #89a0a755;
+      border-color: #b8d8da14;
+      background: #0a171f40;
+      cursor: not-allowed;
+    }
   }
 
   strong {
@@ -376,6 +384,8 @@ $accent: #edb272;
     font: 12px monospace;
     color: var(--accent);
   }
+
+  &.locked strong { color: var(--muted); }
 }
 
 .dialog-top .app-version {
@@ -384,3 +394,99 @@ $accent: #edb272;
   color: var(--muted);
   white-space: nowrap;
 }
+
+.scenario-grid { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 800px) { .scenario-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .scenario-grid { grid-template-columns: 1fr; } }
+.network-panel {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #b8d0d105;
+  display: grid;
+  gap: 10px;
+}
+.network-options { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.segmented {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 8px monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  > span { margin-right: 4px; }
+  button { font: 9px monospace; letter-spacing: 1px; padding: 7px 10px; min-width: 34px; }
+  button.chosen { border-color: var(--accent); color: var(--accent); }
+}
+.network-rules { margin: 0; font-size: 10px; line-height: 1.5; }
+.network-hint { font: 8px monospace; color: var(--muted); line-height: 1.5; }
+.peer-list { display: grid; gap: 5px; max-height: 150px; overflow-y: auto; }
+.peer-heading { font: 8px monospace; letter-spacing: 1px; color: var(--muted); }
+.peer {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  strong { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  strong small { color: var(--muted); font-weight: 400; margin-left: 5px; }
+  > span:last-child { font: 8px monospace; color: var(--muted); text-align: right; }
+}
+.peer-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.peer-dot.briefing { background: #9fd8a8; }
+.peer-dot.flying { background: var(--accent); }
+.peer-dot.down { background: #ff7757; }
+.formation-start { font-size: 11px; small { display: block; font: 8px monospace; color: var(--muted); margin-top: 4px; } }
+.radar-peer { stroke: #ff8f6b !important; fill: none !important; stroke-width: 0.8; }
+.radar-peer.friendly { stroke: #7cc7ff !important; }
+.target-marker.friendly { color: #9fd4ff; cursor: default; }
+.target-marker.friendly .target-box { border-color: #7cc7ff; border-radius: 50%; }
+.pilot-bubble {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border: 1px solid #ffb09599;
+  border-radius: 9px;
+  background: #1d1714b8;
+  color: #ffc9b5;
+  font: 9px monospace;
+  letter-spacing: .5px;
+  pointer-events: none;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -4px 0 0 -4px;
+    border-right: 1px solid #ffb09599;
+    border-bottom: 1px solid #ffb09599;
+    background: inherit;
+    transform: rotate(45deg);
+  }
+  &.human { color: #fff1d6; border-color: #ffd28acc; }
+  &.human::after { border-color: #ffd28acc; }
+}
+.target-marker.friendly .pilot-bubble { color: #d6eeff; border-color: #7cc7ffcc; background: #0f1d28b8; }
+.target-marker.friendly .pilot-bubble::after { border-color: #7cc7ffcc; }
+@media (max-width: 600px) { .pilot-bubble { font-size: 7px; padding: 2px 5px; max-width: 100px; } }
+
+// HUD legibility over bright sky: a dark halo around every glyph and line, and no faded secondary values.
+$hud-halo: 0 0 2px #020d08, 0 0 4px #020d08d0, 0 1px 6px #020d0890;
+.hud, .mission-success, .landing-report, .flight-info, .environment-info, .target-marker { text-shadow: $hud-halo; }
+.attitude, .flight-path, .tape-values strong, .heading-scale { filter: drop-shadow(0 0 1px #020d08f0) drop-shadow(0 0 3px #020d08a0); }
+.tape-values strong { text-shadow: none; background: #0b211ab0; }
+.tape-values > span, .heading-display > span, .g-readout small, .vs-readout small { opacity: 1; }
+.attitude .acquisition { opacity: .75; }
+.attitude .bank-arc { opacity: .9; }
+.flight-info .muted { color: #c2d3d6; }
+.mission-success span { color: #e6fbe8; }
+.autopilot-settings .autopilot-time .autopilot-time-note { flex-basis: 100%; font: 7px monospace; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }

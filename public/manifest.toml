@@ -1,4 +1,5 @@
 name = "MachStrike"
 description = "A Web-XDC fighter jet simulator with six-degree-of-freedom flight and combat."
+source_code_url = "https://github.com/th2tran/flightsim-xdc"
 icon = "icon.png"
-version = "0.6.0.44"
+version = "0.7.0.53"

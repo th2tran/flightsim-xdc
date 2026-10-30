@@ -4,6 +4,7 @@ import { Aircraft, clamp, Scenario, STEP, terrainHeight } from './sim/flight';
 import { compressionBlocker, TIME_SCALES } from './sim/time-compression';
 import { VERSION } from '../../version.js';
 import { Combat } from './sim/combat';
+import { CAMPAIGN_BOGEYS, CAMPAIGN_ORIGIN, campaignBogeyCount, CampaignMode, CampaignSession, connectWebxdc, PeerInfo, slotOffset } from './sim/network';
 import { FlightRenderer, ScreenTarget } from './sim/renderer';
 import { FlightMusic } from './sim/music';
 import { FlightSound } from './sim/sound';
@@ -35,6 +36,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   scenario: Scenario = 'intercept';
   activeScenario: Scenario = 'intercept';
   runwayStart = false;
+  campaignBogeys = 3;
+  private mode: CampaignMode = 'cooperative';
+  get campaignMode(): CampaignMode { return this.mode; }
+  set campaignMode(mode: CampaignMode) {
+    this.mode = mode;
+    this.campaignBogeys = campaignBogeyCount(mode, this.campaignBogeys);
+  }
+  /** Zero computer bogeys is a pure player-versus-player fight, so it is only offered in competitive mode. */
+  get campaignBogeyOptions(): readonly number[] { return CAMPAIGN_BOGEYS.filter(count => count > 0 || this.mode === 'competitive'); }
+  readonly network = connectWebxdc();
   readonly airframes = AIRFRAMES;
   selectedAirframe = AIRFRAMES[0];
   get startAltitudeFeet(): number { return Math.round(metresToFeet(this.selectedAirframe.start.altitude) / 100) * 100; }
@@ -43,7 +54,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   cockpit = false;
   targets: ScreenTarget[] = [];
   flightPath = { x: 50, y: 50, visible: false };
-  radar: { id: number; x: number; y: number; selected: boolean }[] = [];
+  radar: { id: number; x: number; y: number; selected: boolean; peer: boolean; friendly: boolean }[] = [];
   radarMissiles: { id: number; x: number; y: number; trail: string }[] = [];
   radarBase = { x: 50, y: 50, pinned: false };
   readonly radarRanges = [3, 6, 12, 25];
@@ -89,7 +100,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private rudderElement: HTMLElement | null = null;
   private gunPointer: number | null = null;
 
-  constructor(private zone: NgZone, private changes: ChangeDetectorRef) {}
+  constructor(private zone: NgZone, private changes: ChangeDetectorRef) {
+    this.network.onLaunch = session => {
+      this.beginSortie(session);
+      const host = this.network.peers.get(session.host)?.name ?? 'the host';
+      this.combat.notify(`Network campaign launched by ${host}. ${session.mode === 'cooperative' ? 'Co-operative: work together' : 'Competitive: every pilot for themselves'}.`, 8);
+    };
+  }
 
   ngAfterViewInit(): void {
     try {
@@ -136,7 +153,36 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
   }
   get score(): number { return this.combat.kills * 1000 + (this.aircraft.phase === 'landed' ? 500 : 0); }
-  get missionName(): string { return this.activeScenario === 'training' ? 'Flight school' : this.activeScenario === 'intercept' ? 'Coastal intercept' : 'Overwhelming odds'; }
+  get missionName(): string {
+    return this.activeScenario === 'training' ? 'Flight school' : this.activeScenario === 'intercept' ? 'Coastal intercept'
+      : this.activeScenario === 'network' ? 'Network campaign' : 'Overwhelming odds';
+  }
+  get missionDetail(): string {
+    if (this.combat.complete) return this.combat.victory && this.combat.network?.competitive ? 'CAMPAIGN WON' : 'AIRSPACE SECURED';
+    if (this.activeScenario === 'training') return 'FREE FLIGHT · RUNWAY 36 / 18';
+    if (this.activeScenario !== 'network') return 'OPERATION NORTHSTAR';
+    const pilots = this.combat.peers.filter(peer => peer.health > 0).length + (this.aircraft.phase === 'crashed' ? 0 : 1);
+    return `${this.combat.network?.competitive ? 'COMPETITIVE' : 'CO-OP'} · ${pilots} PILOT${pilots === 1 ? '' : 'S'} UP`;
+  }
+  /** True while this client is flying in a network campaign; the shared world keeps running even if the menu is open. */
+  get networkLive(): boolean {
+    return this.started && this.activeScenario === 'network' && !!this.network.session && !this.error && this.aircraft.phase !== 'crashed';
+  }
+  get peerList(): PeerInfo[] { return this.network.peerList(); }
+  get waitingPilots(): number { return this.peerList.filter(peer => !peer.self && peer.status === 'briefing').length; }
+  peerStatus(peer: PeerInfo): string {
+    const airframe = AIRFRAMES.find(item => item.id === peer.airframe)?.name ?? peer.airframe.toUpperCase();
+    const status = peer.self && this.scenario === 'network' && peer.status === 'briefing' ? 'READY · YOU WOULD HOST'
+      : peer.status === 'briefing' ? 'IN BRIEFING · WILL JOIN' : peer.status === 'flying' ? 'IN CAMPAIGN'
+        : peer.status === 'down' ? 'SHOT DOWN' : 'FLYING SOLO';
+    return `${airframe} · ${status}${peer.host ? ' · HOST' : ''}`;
+  }
+  selectTarget(id: number): void {
+    const bogey = this.combat.bogeys.find(item => item.id === id);
+    if (!bogey || !this.combat.targetable(bogey)) return;
+    this.combat.selected = id;
+    this.combat.lock = 0;
+  }
   get guidance(): string {
     return this.activeScenario === 'training' ? this.instructor.guidance(this.aircraft, this.autopilot, this.touch) : '';
   }
@@ -163,16 +209,35 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   start(): void {
     if (this.error) return;
+    if (this.scenario === 'network') {
+      if (!this.network.available) { this.combat.notify('Realtime networking is unavailable in this host.', 5); return; }
+      this.network.leave();
+      const session = this.network.launch(this.campaignMode, campaignBogeyCount(this.campaignMode, this.campaignBogeys));
+      this.beginSortie(session);
+      const others = session.players.length - 1;
+      this.combat.notify(`Network campaign launched with ${others} other pilot${others === 1 ? '' : 's'}. ${session.mode === 'cooperative' ? 'Co-operative: work together' : 'Competitive: last pilot standing wins'}.`, 8);
+      return;
+    }
+    this.network.leave();
+    this.beginSortie(null);
+  }
+
+  private beginSortie(session: CampaignSession | null): void {
     this.sound.stopCrash();
     this.releaseControls();
     this.aircraft.airframe = this.selectedAirframe;
-    this.aircraft.reset(this.runwayStart);
+    this.aircraft.reset(this.runwayStart && !session);
+    if (session) this.aircraft.position.x += slotOffset(this.network.slot());
     this.flyByWire.capture(this.aircraft);
     this.instructor.reset(this.aircraft);
     this.autopilot.disengage();
     this.timeScaleIndex = 0;
+    if (session) this.scenario = 'network';
     this.activeScenario = this.scenario;
-    this.combat.reset(this.scenario, this.aircraft);
+    this.combat.reset(this.scenario, this.aircraft, session ? {
+      bogeys: session.bogeys, origin: CAMPAIGN_ORIGIN,
+      network: { authority: session.host === this.network.self.addr, competitive: session.mode === 'competitive' },
+    } : undefined);
     if (this.activeScenario === 'training') this.combat.messageUntil = 0;
     this.started = true;
     this.menu = this.help = this.paused = false;
@@ -322,7 +387,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.music.setPlaying(this.running);
     const dt = this.last ? Math.min((timestamp - this.last) / 1000, 0.1) : 0;
     this.last = timestamp;
-    if (this.running) {
+    if (this.running || this.networkLive) {
       this.accumulator += dt * this.timeScale;
       while (this.accumulator >= STEP) {
         this.updateControls(STEP);
@@ -354,6 +419,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       }
     } else this.accumulator = 0;
     if (this.aircraft.phase === 'crashed' && dt > 0) this.combat.step(dt, this.aircraft);
+    this.updateNetworkStatus();
+    this.network.tick(timestamp / 1000, this.aircraft, this.combat);
     this.sound.setPlaying(this.running);
     this.sound.update(this.aircraft, this.combat.incoming);
     if (this.graphics && !this.error) {
@@ -368,6 +435,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
     this.animation = requestAnimationFrame(this.frame);
   };
+
+  private updateNetworkStatus(): void {
+    const inCampaign = this.started && this.activeScenario === 'network' && !!this.network.session;
+    this.network.airframe = this.menu ? this.selectedAirframe.id : this.aircraft.airframe.id;
+    this.network.status = inCampaign && this.aircraft.phase !== 'crashed' ? 'flying' : this.menu ? 'briefing' : inCampaign ? 'down' : 'solo';
+  }
 
   private keyAxis(positive: string, positiveAlt: string, negative: string, negativeAlt: string): number {
     const held = (code: string): number => this.keys.has(code) ? 1 : 0;
@@ -410,7 +483,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.radar = this.combat.alive.map(b => {
       const relative = b.position.clone().sub(this.aircraft.position).applyQuaternion(inverse);
       const scale = Math.max(this.radarRangeKm * 1000, Math.hypot(relative.x, relative.z));
-      return { id: b.id, x: 50 + relative.x / scale * 43, y: 50 + relative.z / scale * 43, selected: b.id === this.combat.selected };
+      return {
+        id: b.id, x: 50 + relative.x / scale * 43, y: 50 + relative.z / scale * 43, selected: b.id === this.combat.selected,
+        peer: !!b.peer, friendly: !!b.peer && !this.combat.network?.competitive,
+      };
     });
     const incoming = this.combat.projectiles.filter(projectile => projectile.kind === 'hostile' && !projectile.decoyed);
     const activeIds = new Set(incoming.map(projectile => projectile.id));
@@ -549,5 +625,5 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.aircraft.controls.pitch = this.aircraft.controls.roll = this.aircraft.controls.yaw = 0;
     this.aircraft.controls.brake = this.combat.firing = false;
   }
-  ngOnDestroy(): void { cancelAnimationFrame(this.animation); this.graphics?.dispose(); this.music.dispose(); this.sound.dispose(); }
+  ngOnDestroy(): void { this.network.dispose(); cancelAnimationFrame(this.animation); this.graphics?.dispose(); this.music.dispose(); this.sound.dispose(); }
 }
